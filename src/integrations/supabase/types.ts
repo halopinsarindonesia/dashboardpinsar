@@ -268,6 +268,7 @@ export type Database = {
       farms: {
         Row: {
           address: string | null
+          broiler_initial_population: number
           city: string | null
           country: string | null
           created_at: string
@@ -276,9 +277,11 @@ export type Database = {
           farm_type: Database["public"]["Enums"]["farm_type"]
           id: string
           latitude: number | null
+          layer_initial_population: number
           longitude: number | null
           name: string
           other_species: string | null
+          owner_id: string | null
           postal_code: string | null
           province: string
           status: Database["public"]["Enums"]["farm_status"]
@@ -286,6 +289,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          broiler_initial_population?: number
           city?: string | null
           country?: string | null
           created_at?: string
@@ -294,9 +298,11 @@ export type Database = {
           farm_type?: Database["public"]["Enums"]["farm_type"]
           id?: string
           latitude?: number | null
+          layer_initial_population?: number
           longitude?: number | null
           name: string
           other_species?: string | null
+          owner_id?: string | null
           postal_code?: string | null
           province: string
           status?: Database["public"]["Enums"]["farm_status"]
@@ -304,6 +310,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          broiler_initial_population?: number
           city?: string | null
           country?: string | null
           created_at?: string
@@ -312,9 +319,11 @@ export type Database = {
           farm_type?: Database["public"]["Enums"]["farm_type"]
           id?: string
           latitude?: number | null
+          layer_initial_population?: number
           longitude?: number | null
           name?: string
           other_species?: string | null
+          owner_id?: string | null
           postal_code?: string | null
           province?: string
           status?: Database["public"]["Enums"]["farm_status"]
