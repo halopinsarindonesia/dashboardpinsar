@@ -39,9 +39,17 @@ const navItems: NavItem[] = [
 export default function DashboardLayout() {
   const { profile, signOut } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const userRole = profile?.role ?? 'peternak';
 
   const filteredNav = navItems.filter((item) => item.roles.includes(userRole));
+
+  const roleLabel = userRole === 'dpp' ? 'DPP (Superadmin)' : userRole === 'dpw' ? 'DPW (Provincial)' : 'Peternak';
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login');
+  };
 
   const roleLabel = userRole === 'dpp' ? 'DPP (Superadmin)' : userRole === 'dpw' ? 'DPW (Provincial)' : 'Peternak';
 
