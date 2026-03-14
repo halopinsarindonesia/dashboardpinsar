@@ -51,7 +51,7 @@ export default function DashboardLayout() {
     navigate('/login');
   };
 
-  const roleLabel = userRole === 'dpp' ? 'DPP (Superadmin)' : userRole === 'dpw' ? 'DPW (Provincial)' : 'Peternak';
+  // roleLabel already defined above
 
   return (
     <div className="flex h-screen overflow-hidden">
