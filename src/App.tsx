@@ -14,6 +14,7 @@ import BeritaPage from "@/pages/BeritaPage";
 import BeritaDetailPage from "@/pages/BeritaDetailPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
+import KontakPage from "@/pages/KontakPage";
 import NotFound from "@/pages/NotFound";
 
 import DashboardOverview from "@/pages/dashboard/DashboardOverview";
