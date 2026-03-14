@@ -176,6 +176,33 @@ export type Database = {
         }
         Relationships: []
       }
+      cms_partners: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean | null
+          logo_url: string
+          name: string
+          sort_order: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          logo_url: string
+          name: string
+          sort_order?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string
+          name?: string
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       farm_members: {
         Row: {
           created_at: string
