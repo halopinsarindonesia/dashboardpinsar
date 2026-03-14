@@ -113,3 +113,5 @@
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
 }
+
+/* Ensure ticker-scroll works with arbitrary durations */
