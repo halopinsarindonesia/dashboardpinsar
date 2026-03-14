@@ -150,6 +150,7 @@ export type Database = {
           phone: string | null
           twitter: string | null
           updated_at: string
+          whatsapp: string | null
           youtube: string | null
         }
         Insert: {
@@ -161,6 +162,7 @@ export type Database = {
           phone?: string | null
           twitter?: string | null
           updated_at?: string
+          whatsapp?: string | null
           youtube?: string | null
         }
         Update: {
@@ -172,6 +174,7 @@ export type Database = {
           phone?: string | null
           twitter?: string | null
           updated_at?: string
+          whatsapp?: string | null
           youtube?: string | null
         }
         Relationships: []
@@ -200,6 +203,36 @@ export type Database = {
           logo_url?: string
           name?: string
           sort_order?: number | null
+        }
+        Relationships: []
+      }
+      contact_submissions: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          message: string
+          phone: string | null
+          subject: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          message: string
+          phone?: string | null
+          subject: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          message?: string
+          phone?: string | null
+          subject?: string
         }
         Relationships: []
       }

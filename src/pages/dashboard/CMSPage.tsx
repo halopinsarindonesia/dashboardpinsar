@@ -158,7 +158,7 @@ function ContactTab() {
   const [contact, setContact] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ phone: '', email: '', address: '', facebook: '', instagram: '', twitter: '', youtube: '' });
+  const [form, setForm] = useState({ phone: '', email: '', address: '', whatsapp: '', facebook: '', instagram: '', twitter: '', youtube: '' });
 
   useEffect(() => { loadContact(); }, []);
 
@@ -172,7 +172,7 @@ function ContactTab() {
     }
     if (data) {
       setContact(data);
-      setForm({ phone: data.phone || '', email: data.email || '', address: data.address || '', facebook: data.facebook || '', instagram: data.instagram || '', twitter: data.twitter || '', youtube: data.youtube || '' });
+      setForm({ phone: data.phone || '', email: data.email || '', address: data.address || '', whatsapp: (data as any).whatsapp || '', facebook: data.facebook || '', instagram: data.instagram || '', twitter: data.twitter || '', youtube: data.youtube || '' });
     }
     setLoading(false);
   }
@@ -195,6 +195,7 @@ function ContactTab() {
         <div><Label>Telepon</Label><Input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
         <div><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
       </div>
+      <div><Label>WhatsApp</Label><Input value={form.whatsapp} onChange={e => setForm({ ...form, whatsapp: e.target.value })} placeholder="628xxxxxxxxxx" /></div>
       <div><Label>Alamat</Label><Textarea value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} /></div>
       <h3 className="font-display text-sm font-semibold text-foreground pt-2">Media Sosial</h3>
       <div className="grid gap-4 sm:grid-cols-2">

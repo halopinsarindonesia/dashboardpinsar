@@ -14,6 +14,7 @@ import BeritaPage from "@/pages/BeritaPage";
 import BeritaDetailPage from "@/pages/BeritaDetailPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
+import KontakPage from "@/pages/KontakPage";
 import NotFound from "@/pages/NotFound";
 
 import DashboardOverview from "@/pages/dashboard/DashboardOverview";
@@ -44,7 +45,7 @@ const App = () => (
               <Route path="/berita" element={<BeritaPage />} />
               <Route path="/berita/:id" element={<BeritaDetailPage />} />
               <Route path="/tentang" element={<PlaceholderPage title="Tentang Kami" />} />
-              <Route path="/kontak" element={<PlaceholderPage title="Kontak" />} />
+              <Route path="/kontak" element={<KontakPage />} />
             </Route>
 
             {/* Auth routes */}
