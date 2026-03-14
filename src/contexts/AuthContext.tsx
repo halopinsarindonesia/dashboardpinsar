@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -22,6 +22,23 @@ interface UserProfile {
   work_address?: string;
 }
 
+const AUTH_STORAGE_KEY_PART = '-auth-token';
+
+function clearClientAuthStorage() {
+  const clearFromStorage = (storage: Storage) => {
+    Object.keys(storage)
+      .filter((key) => key.includes(AUTH_STORAGE_KEY_PART))
+      .forEach((key) => storage.removeItem(key));
+  };
+
+  try {
+    clearFromStorage(localStorage);
+    clearFromStorage(sessionStorage);
+  } catch {
+    // ignore storage access errors
+  }
+}
+
 const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
@@ -38,55 +55,84 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          const { data } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          setProfile(data as UserProfile | null);
-        } else {
-          setProfile(null);
-        }
-        setLoading(false);
-      }
-    );
+  const fetchProfile = useCallback(async (userId: string) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data }) => {
-            setProfile(data as UserProfile | null);
-            setLoading(false);
-          });
-      } else {
-        setLoading(false);
-      }
-    });
+    if (error) {
+      return null;
+    }
 
-    return () => subscription.unsubscribe();
+    return (data as UserProfile | null) ?? null;
   }, []);
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    setProfile(null);
-  };
+  const syncAuthState = useCallback(
+    async (nextSession: Session | null) => {
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
 
-  return (
-    <AuthContext.Provider value={{ user, session, loading, profile, signOut }}>
-      {children}
-    </AuthContext.Provider>
+      if (nextSession?.user) {
+        const nextProfile = await fetchProfile(nextSession.user.id);
+        setProfile(nextProfile);
+      } else {
+        setProfile(null);
+      }
+
+      setLoading(false);
+    },
+    [fetchProfile]
   );
+
+  useEffect(() => {
+    let mounted = true;
+
+    const applySession = async (nextSession: Session | null) => {
+      if (!mounted) return;
+      await syncAuthState(nextSession);
+    };
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      void applySession(nextSession);
+    });
+
+    supabase.auth
+      .getSession()
+      .then(({ data: { session: currentSession } }) => {
+        void applySession(currentSession);
+      })
+      .catch(() => {
+        if (mounted) setLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [syncAuthState]);
+
+  const signOut = useCallback(async () => {
+    setLoading(true);
+
+    try {
+      await Promise.race([
+        supabase.auth.signOut({ scope: 'global' }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('signout-timeout')), 4000)),
+      ]);
+    } catch {
+      await supabase.auth.signOut({ scope: 'local' });
+    } finally {
+      clearClientAuthStorage();
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setLoading(false);
+    }
+  }, []);
+
+  return <AuthContext.Provider value={{ user, session, loading, profile, signOut }}>{children}</AuthContext.Provider>;
 }
