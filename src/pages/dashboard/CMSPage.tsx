@@ -188,7 +188,7 @@ function ContactTab() {
   );
 }
 
-// ─── Blog (Rich Text + Banner) ──────────
+// ─── Blog (Rich Text + Banner + Edit) ──────────
 function BlogTab() {
   const { user, profile } = useAuth();
   const { toast } = useToast();
@@ -196,6 +196,7 @@ function BlogTab() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingBlog, setEditingBlog] = useState<any>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [blogType, setBlogType] = useState('news');
@@ -205,12 +206,31 @@ function BlogTab() {
   useEffect(() => { load(); }, []);
   async function load() { setLoading(true); const { data } = await supabase.from('cms_blogs').select('*').order('created_at', { ascending: false }); setBlogs(data ?? []); setLoading(false); }
 
-  async function handleAdd(e: React.FormEvent) {
+  function resetForm() { setTitle(''); setContent(''); setBlogType('news'); setStatus('active'); setBannerUrl(''); setEditingBlog(null); }
+
+  function openEdit(b: any) {
+    setEditingBlog(b);
+    setTitle(b.title);
+    setContent(b.content || '');
+    setBlogType(b.blog_type);
+    setStatus(b.status);
+    setBannerUrl(b.images?.[0] || '');
+    setDialogOpen(true);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault(); setSubmitting(true);
     const images = bannerUrl ? [bannerUrl] : null;
-    const { error } = await supabase.from('cms_blogs').insert({ title, content, blog_type: blogType, status, publish_date: new Date().toISOString(), images });
-    if (error) toast({ title: 'Gagal', description: error.message, variant: 'destructive' });
-    else { await logAudit({ action: 'create', module: 'CMS Blog', userId: user?.id, userName: profile?.full_name, newValue: { title, blogType } }); toast({ title: 'Artikel ditambahkan' }); setDialogOpen(false); setTitle(''); setContent(''); setBannerUrl(''); load(); }
+
+    if (editingBlog) {
+      const { error } = await supabase.from('cms_blogs').update({ title, content, blog_type: blogType, status, images }).eq('id', editingBlog.id);
+      if (error) toast({ title: 'Gagal', description: error.message, variant: 'destructive' });
+      else { await logAudit({ action: 'edit', module: 'CMS Blog', userId: user?.id, userName: profile?.full_name, oldValue: { title: editingBlog.title }, newValue: { title, blogType } }); toast({ title: 'Artikel diperbarui' }); setDialogOpen(false); resetForm(); load(); }
+    } else {
+      const { error } = await supabase.from('cms_blogs').insert({ title, content, blog_type: blogType, status, publish_date: new Date().toISOString(), images });
+      if (error) toast({ title: 'Gagal', description: error.message, variant: 'destructive' });
+      else { await logAudit({ action: 'create', module: 'CMS Blog', userId: user?.id, userName: profile?.full_name, newValue: { title, blogType } }); toast({ title: 'Artikel ditambahkan' }); setDialogOpen(false); resetForm(); load(); }
+    }
     setSubmitting(false);
   }
 
@@ -223,11 +243,11 @@ function BlogTab() {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <p className="text-sm text-muted-foreground">Kelola berita dan kegiatan</p>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
           <DialogTrigger asChild><Button size="sm"><Plus className="mr-2 h-4 w-4" />Tambah Artikel</Button></DialogTrigger>
           <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Artikel Baru</DialogTitle></DialogHeader>
-            <form onSubmit={handleAdd} className="space-y-4">
+            <DialogHeader><DialogTitle>{editingBlog ? 'Edit Artikel' : 'Artikel Baru'}</DialogTitle></DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div><Label>Judul</Label><Input value={title} onChange={e => setTitle(e.target.value)} required /></div>
               <div><Label>Banner Image URL</Label><Input value={bannerUrl} onChange={e => setBannerUrl(e.target.value)} placeholder="https://..." /></div>
               <div className="grid grid-cols-2 gap-3">
@@ -245,7 +265,7 @@ function BlogTab() {
                 </div>
               </div>
               <div><Label>Konten</Label><RichTextEditor content={content} onChange={setContent} /></div>
-              <Button type="submit" className="w-full" disabled={submitting}>{submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Simpan Artikel'}</Button>
+              <Button type="submit" className="w-full" disabled={submitting}>{submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : editingBlog ? 'Simpan Perubahan' : 'Simpan Artikel'}</Button>
             </form>
           </DialogContent>
         </Dialog>
@@ -266,7 +286,10 @@ function BlogTab() {
                 <h3 className="mt-1 font-medium text-foreground">{b.title}</h3>
                 <p className="mt-1 text-xs text-muted-foreground">{new Date(b.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
               </div>
-              <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-destructive" onClick={() => handleDelete(b.id)}><Trash2 className="h-4 w-4" /></Button>
+              <div className="flex gap-1 shrink-0">
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(b)} title="Edit"><Pencil className="h-4 w-4" /></Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(b.id)} title="Hapus"><Trash2 className="h-4 w-4" /></Button>
+              </div>
             </div>
           ))}
         </div>
