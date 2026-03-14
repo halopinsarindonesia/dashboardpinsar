@@ -172,7 +172,7 @@ function ContactTab() {
     }
     if (data) {
       setContact(data);
-      setForm({ phone: data.phone || '', email: data.email || '', address: data.address || '', facebook: data.facebook || '', instagram: data.instagram || '', twitter: data.twitter || '', youtube: data.youtube || '' });
+      setForm({ phone: data.phone || '', email: data.email || '', address: data.address || '', whatsapp: (data as any).whatsapp || '', facebook: data.facebook || '', instagram: data.instagram || '', twitter: data.twitter || '', youtube: data.youtube || '' });
     }
     setLoading(false);
   }
