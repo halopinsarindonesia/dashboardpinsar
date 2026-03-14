@@ -57,8 +57,6 @@ export default function DashboardOverview() {
   const [broilerStats, setBroilerStats] = useState({ price: 0, avgPrice: 0, population: 0, sold: 0, activeFarms: 0, inactive: 0 });
   const [layerStats, setLayerStats] = useState({ price: 0, avgPrice: 0, population: 0, eggProd: 0, activeFarms: 0, inactive: 0 });
 
-  if (profile?.role === 'peternak') return <Navigate to="/dashboard/farms" replace />;
-
   const loadData = useCallback(async () => {
     setLoading(true);
     const { start, end } = getDateRange(filter, customStart, customEnd);
