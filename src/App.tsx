@@ -9,6 +9,9 @@ import PublicLayout from "@/layouts/PublicLayout";
 import DashboardLayout from "@/layouts/DashboardLayout";
 
 import HomePage from "@/pages/HomePage";
+import HargaPage from "@/pages/HargaPage";
+import BeritaPage from "@/pages/BeritaPage";
+import BeritaDetailPage from "@/pages/BeritaDetailPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import NotFound from "@/pages/NotFound";
@@ -37,8 +40,9 @@ const App = () => (
             {/* Public routes */}
             <Route element={<PublicLayout />}>
               <Route path="/" element={<HomePage />} />
-              <Route path="/berita" element={<PlaceholderPage title="Berita" />} />
-              <Route path="/kegiatan" element={<PlaceholderPage title="Kegiatan" />} />
+              <Route path="/harga" element={<HargaPage />} />
+              <Route path="/berita" element={<BeritaPage />} />
+              <Route path="/berita/:id" element={<BeritaDetailPage />} />
               <Route path="/tentang" element={<PlaceholderPage title="Tentang Kami" />} />
               <Route path="/kontak" element={<PlaceholderPage title="Kontak" />} />
             </Route>

@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Plus, Pencil, Trash2, Image, FileText, Phone, Globe } from 'lucide-react';
+import { Loader2, Plus, Pencil, Trash2, Image, FileText, Phone, Globe, Handshake } from 'lucide-react';
 
 // ─── Banner Management ─────────────────────────────
 function BannerTab() {
@@ -102,7 +102,6 @@ function AboutTab() {
     setLoading(true);
     const { data } = await supabase.from('cms_about').select('*');
     if (data && data.length === 0) {
-      // Seed default sections
       const defaults = Object.keys(SECTION_LABELS).map(s => ({ section: s, content: '' }));
       await supabase.from('cms_about').insert(defaults);
       const { data: seeded } = await supabase.from('cms_about').select('*');
@@ -233,7 +232,7 @@ function BlogTab() {
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
-    const { error } = await supabase.from('cms_blogs').insert({ title, content, blog_type: blogType, status });
+    const { error } = await supabase.from('cms_blogs').insert({ title, content, blog_type: blogType, status, publish_date: new Date().toISOString() });
     if (error) toast({ title: 'Gagal', description: error.message, variant: 'destructive' });
     else { toast({ title: 'Blog ditambahkan' }); setDialogOpen(false); setTitle(''); setContent(''); loadBlogs(); }
     setSubmitting(false);
@@ -308,6 +307,74 @@ function BlogTab() {
   );
 }
 
+// ─── Partners Management ────────────────────────────
+function PartnersTab() {
+  const { toast } = useToast();
+  const [partners, setPartners] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => { loadPartners(); }, []);
+
+  async function loadPartners() {
+    setLoading(true);
+    const { data } = await supabase.from('cms_partners').select('*').order('sort_order');
+    setPartners(data ?? []);
+    setLoading(false);
+  }
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    const { error } = await supabase.from('cms_partners').insert({ name, logo_url: logoUrl, sort_order: partners.length });
+    if (error) toast({ title: 'Gagal', description: error.message, variant: 'destructive' });
+    else { toast({ title: 'Mitra ditambahkan' }); setDialogOpen(false); setName(''); setLogoUrl(''); loadPartners(); }
+    setSubmitting(false);
+  }
+
+  async function handleDelete(id: string) {
+    const { error } = await supabase.from('cms_partners').delete().eq('id', id);
+    if (!error) { toast({ title: 'Mitra dihapus' }); loadPartners(); }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-muted-foreground">Kelola mitra (maks. 10 ditampilkan, 5 per baris)</p>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild><Button size="sm"><Plus className="mr-2 h-4 w-4" />Tambah Mitra</Button></DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Tambah Mitra</DialogTitle></DialogHeader>
+            <form onSubmit={handleAdd} className="space-y-4">
+              <div><Label>Nama Perusahaan</Label><Input value={name} onChange={e => setName(e.target.value)} required /></div>
+              <div><Label>URL Logo</Label><Input value={logoUrl} onChange={e => setLogoUrl(e.target.value)} required placeholder="https://..." /></div>
+              <Button type="submit" className="w-full" disabled={submitting}>{submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Simpan'}</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+      {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> : partners.length === 0 ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">Belum ada mitra.</p>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+          {partners.map(p => (
+            <div key={p.id} className="flex items-center gap-3 rounded-lg border p-3">
+              <div className="h-10 w-10 shrink-0 rounded bg-muted flex items-center justify-center overflow-hidden">
+                <img src={p.logo_url} alt={p.name} className="h-full w-full object-contain" />
+              </div>
+              <span className="flex-1 text-sm font-medium text-foreground truncate">{p.name}</span>
+              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(p.id)}><Trash2 className="h-4 w-4" /></Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main CMS Page ──────────────────────────────────
 export default function CMSPage() {
   return (
@@ -317,16 +384,18 @@ export default function CMSPage() {
         <p className="text-sm text-muted-foreground">Kelola konten landing page</p>
       </div>
       <Tabs defaultValue="banner">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="banner"><Image className="mr-1.5 h-4 w-4" />Banner</TabsTrigger>
           <TabsTrigger value="about"><FileText className="mr-1.5 h-4 w-4" />Tentang Kami</TabsTrigger>
           <TabsTrigger value="contact"><Phone className="mr-1.5 h-4 w-4" />Kontak</TabsTrigger>
           <TabsTrigger value="blog"><Globe className="mr-1.5 h-4 w-4" />Blog</TabsTrigger>
+          <TabsTrigger value="partners"><Handshake className="mr-1.5 h-4 w-4" />Mitra</TabsTrigger>
         </TabsList>
         <TabsContent value="banner"><BannerTab /></TabsContent>
         <TabsContent value="about"><AboutTab /></TabsContent>
         <TabsContent value="contact"><ContactTab /></TabsContent>
         <TabsContent value="blog"><BlogTab /></TabsContent>
+        <TabsContent value="partners"><PartnersTab /></TabsContent>
       </Tabs>
     </div>
   );

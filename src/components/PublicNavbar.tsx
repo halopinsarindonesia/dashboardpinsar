@@ -9,8 +9,8 @@ export default function PublicNavbar() {
 
   const links = [
     { label: 'Beranda', href: '/' },
+    { label: 'Harga', href: '/harga' },
     { label: 'Berita', href: '/berita' },
-    { label: 'Kegiatan', href: '/kegiatan' },
     { label: 'Tentang Kami', href: '/tentang' },
     { label: 'Kontak', href: '/kontak' },
   ];
