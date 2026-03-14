@@ -1,4 +1,4 @@
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   LayoutDashboard,
@@ -39,11 +39,19 @@ const navItems: NavItem[] = [
 export default function DashboardLayout() {
   const { profile, signOut } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const userRole = profile?.role ?? 'peternak';
 
   const filteredNav = navItems.filter((item) => item.roles.includes(userRole));
 
   const roleLabel = userRole === 'dpp' ? 'DPP (Superadmin)' : userRole === 'dpw' ? 'DPW (Provincial)' : 'Peternak';
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login');
+  };
+
+  // roleLabel already defined above
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -83,7 +91,7 @@ export default function DashboardLayout() {
             variant="ghost"
             size="sm"
             className="w-full justify-start text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            onClick={signOut}
+            onClick={handleLogout}
           >
             <LogOut className="mr-2 h-4 w-4" />
             Keluar
