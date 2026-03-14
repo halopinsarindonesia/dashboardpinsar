@@ -158,7 +158,7 @@ function ContactTab() {
   const [contact, setContact] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ phone: '', email: '', address: '', facebook: '', instagram: '', twitter: '', youtube: '' });
+  const [form, setForm] = useState({ phone: '', email: '', address: '', whatsapp: '', facebook: '', instagram: '', twitter: '', youtube: '' });
 
   useEffect(() => { loadContact(); }, []);
 
