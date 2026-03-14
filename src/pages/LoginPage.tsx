@@ -17,15 +17,26 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    
-    if (error) {
-      toast({ title: 'Login gagal', description: error.message, variant: 'destructive' });
-    } else {
-      navigate('/dashboard');
+
+    try {
+      const {
+        data: { session: existingSession },
+      } = await supabase.auth.getSession();
+
+      if (existingSession) {
+        await supabase.auth.signOut({ scope: 'local' });
+      }
+
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        toast({ title: 'Login gagal', description: error.message, variant: 'destructive' });
+      } else {
+        navigate('/dashboard');
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
