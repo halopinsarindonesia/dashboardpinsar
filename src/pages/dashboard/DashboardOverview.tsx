@@ -142,6 +142,8 @@ export default function DashboardOverview() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  if (profile?.role === 'peternak') return <Navigate to="/dashboard/farms" replace />;
+
   const fmtNum = (n: number) => n.toLocaleString('id-ID');
   const fmtPrice = (n: number) => n > 0 ? `Rp ${fmtNum(n)}` : '-';
 
