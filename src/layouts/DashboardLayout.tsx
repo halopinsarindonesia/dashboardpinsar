@@ -29,9 +29,8 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['dpp', 'dpw'] },
   { label: 'Peternakan', href: '/dashboard/farms', icon: Warehouse, roles: ['dpp', 'dpw', 'peternak'] },
-  { label: 'Input Suplai', href: '/dashboard/supply', icon: ClipboardList, roles: ['dpp', 'dpw', 'peternak'] },
+  { label: 'Input Panen', href: '/dashboard/supply', icon: ClipboardList, roles: ['dpp', 'dpw', 'peternak'] },
   { label: 'Peta Peternakan', href: '/dashboard/map', icon: Map, roles: ['dpp', 'dpw'] },
-  { label: 'Harga', href: '/dashboard/prices', icon: BarChart3, roles: ['dpp', 'dpw'] },
   { label: 'Pengguna', href: '/dashboard/users', icon: Users, roles: ['dpp', 'dpw'] },
   { label: 'CMS', href: '/dashboard/cms', icon: FileText, roles: ['dpp'] },
   { label: 'Ekspor Data', href: '/dashboard/export', icon: Download, roles: ['dpp', 'dpw'] },
