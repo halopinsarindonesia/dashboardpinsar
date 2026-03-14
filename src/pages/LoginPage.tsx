@@ -44,9 +44,14 @@ export default function LoginPage() {
       {/* Right panel */}
       <div className="flex flex-1 items-center justify-center bg-background p-8">
         <div className="w-full max-w-sm">
-          <div className="mb-8 lg:hidden flex items-center gap-2">
-            <Bird className="h-8 w-8 text-primary" />
-            <span className="font-display text-xl font-bold text-foreground">PINSAR</span>
+          <div className="mb-8 flex items-center justify-between">
+            <Link to="/" className="flex items-center gap-2">
+              <Bird className="h-8 w-8 text-primary" />
+              <span className="font-display text-xl font-bold text-foreground">PINSAR</span>
+            </Link>
+            <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              ← Kembali
+            </Link>
           </div>
 
           <h2 className="font-display text-2xl font-bold text-foreground">Masuk</h2>
