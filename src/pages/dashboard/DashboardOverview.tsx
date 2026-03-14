@@ -1,9 +1,11 @@
-import { Warehouse, Bird, TrendingUp, Users, AlertCircle, CheckCircle } from 'lucide-react';
+import { Warehouse, TrendingUp, Users, AlertCircle, CheckCircle, ClipboardList } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/contexts/AuthContext';
+import { Navigate } from 'react-router-dom';
 
 const generalStats = [
   { label: 'Total Peternakan Aktif', value: '1,247', icon: Warehouse, color: 'text-primary' },
-  { label: 'Total Ayam Tersedia', value: '3.2M', icon: Bird, color: 'text-secondary' },
+  { label: 'Total Ayam Tersedia', value: '3.2M', icon: ClipboardList, color: 'text-secondary' },
   { label: 'Rata-rata Harga Ayam', value: 'Rp 19.500', icon: TrendingUp, color: 'text-accent' },
   { label: 'Total Peternak', value: '856', icon: Users, color: 'text-primary' },
 ];
@@ -14,6 +16,13 @@ const submissionStats = [
 ];
 
 export default function DashboardOverview() {
+  const { profile } = useAuth();
+
+  // Peternak doesn't have dashboard overview, redirect to farms
+  if (profile?.role === 'peternak') {
+    return <Navigate to="/dashboard/farms" replace />;
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -21,7 +30,6 @@ export default function DashboardOverview() {
         <p className="text-sm text-muted-foreground">Ringkasan data perunggasan nasional</p>
       </div>
 
-      {/* General stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {generalStats.map((stat) => (
           <Card key={stat.label}>
@@ -36,7 +44,6 @@ export default function DashboardOverview() {
         ))}
       </div>
 
-      {/* Submission stats */}
       <div>
         <h2 className="mb-4 font-display text-lg font-semibold text-foreground">Status Input Suplai Hari Ini</h2>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -54,12 +61,9 @@ export default function DashboardOverview() {
         </div>
       </div>
 
-      {/* Chicken Stats */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle className="font-display text-base">Statistik Ayam Potong</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="font-display text-base">Statistik Ayam Potong</CardTitle></CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
               {[
@@ -78,11 +82,8 @@ export default function DashboardOverview() {
             </div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader>
-            <CardTitle className="font-display text-base">Statistik Telur Ayam</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="font-display text-base">Statistik Telur Ayam</CardTitle></CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
               {[

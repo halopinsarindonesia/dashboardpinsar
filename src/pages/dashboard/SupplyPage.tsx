@@ -18,24 +18,6 @@ interface Farm {
   status: string;
   province: string;
   city: string | null;
-  district: string | null;
-}
-
-interface SupplyRecord {
-  id: string;
-  record_date: string;
-  farm_id: string;
-  broiler_population: number | null;
-  broiler_input: number | null;
-  broiler_sold: number | null;
-  broiler_death: number | null;
-  broiler_price_per_kg: number | null;
-  layer_population: number | null;
-  layer_input: number | null;
-  layer_death: number | null;
-  layer_egg_production: number | null;
-  layer_egg_price_per_kg: number | null;
-  farms?: Farm;
 }
 
 const FARM_TYPE_LABELS: Record<string, string> = {
@@ -48,15 +30,14 @@ const FARM_TYPE_LABELS: Record<string, string> = {
 };
 
 export default function SupplyPage() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const { toast } = useToast();
   const [farms, setFarms] = useState<Farm[]>([]);
-  const [records, setRecords] = useState<SupplyRecord[]>([]);
+  const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Form state
   const [selectedFarmId, setSelectedFarmId] = useState('');
   const [broilerPopulation, setBroilerPopulation] = useState('');
   const [broilerInput, setBroilerInput] = useState('');
@@ -73,18 +54,36 @@ export default function SupplyPage() {
   const isBroiler = selectedFarm && ['broiler', 'mixed', 'other_cut', 'other_mixed'].includes(selectedFarm.farm_type);
   const isLayer = selectedFarm && ['layer', 'mixed', 'other_egg', 'other_mixed'].includes(selectedFarm.farm_type);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, [user, profile]);
 
   async function loadData() {
+    if (!user) return;
     setLoading(true);
-    const [farmsRes, recordsRes] = await Promise.all([
-      supabase.from('farms').select('id, name, farm_code, farm_type, status, province, city, district').eq('status', 'active'),
-      supabase.from('supply_records').select('*, farms(name, farm_code, farm_type, province)').order('record_date', { ascending: false }).limit(50),
-    ]);
-    if (farmsRes.data) setFarms(farmsRes.data as Farm[]);
-    if (recordsRes.data) setRecords(recordsRes.data as any[]);
+
+    // Load farms based on role
+    let farmsData: Farm[] = [];
+    if (profile?.role === 'peternak') {
+      // Get farms user is member of
+      const { data: memberData } = await supabase.from('farm_members').select('farm_id').eq('user_id', user.id);
+      const farmIds = memberData?.map(m => m.farm_id) ?? [];
+      if (farmIds.length > 0) {
+        const { data } = await supabase.from('farms').select('id, name, farm_code, farm_type, status, province, city').in('id', farmIds).eq('status', 'active');
+        farmsData = (data as Farm[]) ?? [];
+      }
+    } else {
+      // DPP/DPW see all active farms
+      const { data } = await supabase.from('farms').select('id, name, farm_code, farm_type, status, province, city').eq('status', 'active');
+      farmsData = (data as Farm[]) ?? [];
+    }
+    setFarms(farmsData);
+
+    // Load records
+    const { data: recordsData } = await supabase
+      .from('supply_records')
+      .select('*, farms(name, farm_code, farm_type, province)')
+      .order('record_date', { ascending: false })
+      .limit(50);
+    setRecords(recordsData ?? []);
     setLoading(false);
   }
 
@@ -96,49 +95,36 @@ export default function SupplyPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedFarmId) return;
+    if (!selectedFarmId || !user) return;
     setSubmitting(true);
 
     const today = new Date().toISOString().split('T')[0];
-
-    // Check if record exists for today
-    const { data: existing } = await supabase
-      .from('supply_records')
-      .select('id')
-      .eq('farm_id', selectedFarmId)
-      .eq('record_date', today)
-      .maybeSingle();
+    const { data: existing } = await supabase.from('supply_records').select('id').eq('farm_id', selectedFarmId).eq('record_date', today).maybeSingle();
 
     if (existing) {
-      toast({ title: 'Sudah ada data', description: 'Farm ini sudah submit hari ini. Silakan edit data yang sudah ada.', variant: 'destructive' });
+      toast({ title: 'Sudah ada data', description: 'Farm ini sudah submit hari ini.', variant: 'destructive' });
       setSubmitting(false);
       return;
     }
 
-    // Validate populations
     const bPop = Number(broilerPopulation) || 0;
     const bSold = Number(broilerSold) || 0;
     const bDeath = Number(broilerDeath) || 0;
     const lPop = Number(layerPopulation) || 0;
     const lDeath = Number(layerDeath) || 0;
 
-    if (isBroiler && (bSold > bPop || bDeath > bPop || bPop - bSold - bDeath < 0)) {
-      toast({ title: 'Validasi gagal', description: 'Terjual + kematian tidak boleh melebihi populasi ayam potong.', variant: 'destructive' });
+    if (isBroiler && (bSold + bDeath > bPop)) {
+      toast({ title: 'Validasi gagal', description: 'Terjual + kematian tidak boleh melebihi populasi.', variant: 'destructive' });
       setSubmitting(false);
       return;
     }
-    if (isLayer && (lDeath > lPop)) {
-      toast({ title: 'Validasi gagal', description: 'Kematian tidak boleh melebihi populasi ayam petelur.', variant: 'destructive' });
+    if (isLayer && lDeath > lPop) {
+      toast({ title: 'Validasi gagal', description: 'Kematian tidak boleh melebihi populasi.', variant: 'destructive' });
       setSubmitting(false);
       return;
     }
 
-    const payload: any = {
-      farm_id: selectedFarmId,
-      record_date: today,
-      submitted_by: profile?.id,
-    };
-
+    const payload: any = { farm_id: selectedFarmId, record_date: today, submitted_by: user.id };
     if (isBroiler) {
       payload.broiler_population = bPop;
       payload.broiler_input = Number(broilerInput) || 0;
@@ -155,7 +141,6 @@ export default function SupplyPage() {
     }
 
     const { error } = await supabase.from('supply_records').insert(payload);
-
     if (error) {
       toast({ title: 'Gagal menyimpan', description: error.message, variant: 'destructive' });
     } else {
@@ -182,20 +167,22 @@ export default function SupplyPage() {
             <Button><Plus className="mr-2 h-4 w-4" /> Input Suplai Baru</Button>
           </DialogTrigger>
           <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle className="font-display">Input Suplai Harian</DialogTitle>
-            </DialogHeader>
+            <DialogHeader><DialogTitle className="font-display">Input Suplai Harian</DialogTitle></DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <Label>Peternakan</Label>
-                <Select value={selectedFarmId} onValueChange={setSelectedFarmId}>
-                  <SelectTrigger><SelectValue placeholder="Pilih peternakan" /></SelectTrigger>
-                  <SelectContent>
-                    {farms.map(f => (
-                      <SelectItem key={f.id} value={f.id}>{f.farm_code} — {f.name} ({FARM_TYPE_LABELS[f.farm_type]})</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {farms.length === 0 ? (
+                  <p className="mt-1 text-sm text-muted-foreground">Anda belum memiliki peternakan. Silakan tambah peternakan terlebih dahulu di menu Peternakan.</p>
+                ) : (
+                  <Select value={selectedFarmId} onValueChange={setSelectedFarmId}>
+                    <SelectTrigger><SelectValue placeholder="Pilih peternakan" /></SelectTrigger>
+                    <SelectContent>
+                      {farms.map(f => (
+                        <SelectItem key={f.id} value={f.id}>{f.farm_code} — {f.name} ({FARM_TYPE_LABELS[f.farm_type]})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
 
               {selectedFarm && (
@@ -240,9 +227,7 @@ export default function SupplyPage() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Riwayat Suplai</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle className="text-base">Riwayat Suplai</CardTitle></CardHeader>
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
@@ -258,13 +243,13 @@ export default function SupplyPage() {
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Tipe</th>
                     <th className="px-4 py-3 text-right font-medium text-muted-foreground">Populasi</th>
                     <th className="px-4 py-3 text-right font-medium text-muted-foreground">Masuk</th>
-                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">Terjual</th>
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">Terjual/Telur</th>
                     <th className="px-4 py-3 text-right font-medium text-muted-foreground">Harga/kg</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {records.map((r) => {
-                    const farm = r.farms as any;
+                  {records.map((r: any) => {
+                    const farm = r.farms;
                     const isBroilerRec = farm?.farm_type && ['broiler', 'mixed', 'other_cut', 'other_mixed'].includes(farm.farm_type);
                     return (
                       <tr key={r.id} className="border-b last:border-0">

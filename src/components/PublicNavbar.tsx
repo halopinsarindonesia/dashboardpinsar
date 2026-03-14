@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
-import { Bird, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
+import logo from '@/assets/logopinsar.jpg';
 
 export default function PublicNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -18,7 +19,7 @@ export default function PublicNavbar() {
     <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <Bird className="h-8 w-8 text-primary" />
+          <img src={logo} alt="PINSAR Indonesia" className="h-9 w-auto object-contain" />
           <span className="font-display text-lg font-bold text-foreground">
             PINSAR
           </span>
@@ -41,10 +42,7 @@ export default function PublicNavbar() {
           </Link>
         </nav>
 
-        <button
-          className="md:hidden"
-          onClick={() => setMobileOpen(!mobileOpen)}
-        >
+        <button className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
           {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
       </div>

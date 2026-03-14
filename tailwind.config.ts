@@ -61,13 +61,13 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        emerald: {
-          DEFAULT: "hsl(var(--emerald))",
-          light: "hsl(var(--emerald-light))",
+        "pinsar-red": {
+          DEFAULT: "hsl(var(--pinsar-red))",
+          light: "hsl(var(--pinsar-red-light))",
         },
-        "royal-blue": {
-          DEFAULT: "hsl(var(--royal-blue))",
-          light: "hsl(var(--royal-blue-light))",
+        "pinsar-dark": {
+          DEFAULT: "hsl(var(--pinsar-dark))",
+          light: "hsl(var(--pinsar-dark-light))",
         },
         amber: {
           DEFAULT: "hsl(var(--amber))",
