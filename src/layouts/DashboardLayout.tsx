@@ -91,7 +91,7 @@ export default function DashboardLayout() {
             variant="ghost"
             size="sm"
             className="w-full justify-start text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            onClick={signOut}
+            onClick={handleLogout}
           >
             <LogOut className="mr-2 h-4 w-4" />
             Keluar
