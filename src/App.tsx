@@ -45,7 +45,7 @@ const App = () => (
               <Route path="/berita" element={<BeritaPage />} />
               <Route path="/berita/:id" element={<BeritaDetailPage />} />
               <Route path="/tentang" element={<PlaceholderPage title="Tentang Kami" />} />
-              <Route path="/kontak" element={<PlaceholderPage title="Kontak" />} />
+              <Route path="/kontak" element={<KontakPage />} />
             </Route>
 
             {/* Auth routes */}
