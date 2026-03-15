@@ -38,39 +38,22 @@ export default function RegisterPage() {
     e.preventDefault();
     setLoading(true);
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: {
-          full_name: name,
-          phone,
-          role,
-          province: role !== 'dpp' ? province : undefined,
-          house_address: role === 'peternak' ? houseAddress : undefined,
-          work_address: role === 'peternak' ? workAddress : undefined,
-        },
+    const { data, error } = await supabase.functions.invoke('register-user', {
+      body: {
+        email,
+        password,
+        full_name: name,
+        phone,
+        role,
+        province: role !== 'dpp' ? province : null,
+        house_address: role === 'peternak' ? houseAddress : null,
+        work_address: role === 'peternak' ? workAddress : null,
       },
     });
 
-    if (error) {
-      toast({ title: 'Registrasi gagal', description: error.message, variant: 'destructive' });
+    if (error || data?.error) {
+      toast({ title: 'Registrasi gagal', description: data?.error || error?.message, variant: 'destructive' });
     } else {
-      // Insert profile
-      if (data.user) {
-        await supabase.from('profiles').insert({
-          id: data.user.id,
-          full_name: name,
-          email,
-          phone,
-          role,
-          status: 'pending',
-          province: role !== 'dpp' ? province : null,
-          house_address: role === 'peternak' ? houseAddress : null,
-          work_address: role === 'peternak' ? workAddress : null,
-        });
-      }
       toast({
         title: 'Registrasi berhasil',
         description: 'Akun Anda menunggu persetujuan admin.',

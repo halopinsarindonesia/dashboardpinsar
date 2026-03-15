@@ -67,9 +67,35 @@ export default function SupplyPage() {
     }
     setFarms(farmsData);
 
-    const { data: recordsData } = await supabase
+    // Role-based record filtering
+    let recordsQuery = supabase
       .from('supply_records').select('*, farms(name, farm_code, farm_type, province)')
       .order('record_date', { ascending: false }).limit(50);
+
+    if (profile?.role === 'peternak') {
+      const farmIds = farmsData.map(f => f.id);
+      if (farmIds.length > 0) {
+        recordsQuery = recordsQuery.in('farm_id', farmIds);
+      } else {
+        setRecords([]);
+        setLoading(false);
+        return;
+      }
+    } else if (profile?.role === 'dpw' && profile.province) {
+      // DPW: get farm IDs in their province first
+      const { data: provinceFarms } = await supabase.from('farms').select('id').eq('province', profile.province);
+      const provFarmIds = (provinceFarms ?? []).map((f: any) => f.id);
+      if (provFarmIds.length > 0) {
+        recordsQuery = recordsQuery.in('farm_id', provFarmIds);
+      } else {
+        setRecords([]);
+        setLoading(false);
+        return;
+      }
+    }
+    // DPP sees all records (no filter)
+
+    const { data: recordsData } = await recordsQuery;
     setRecords(recordsData ?? []);
     setLoading(false);
   }
