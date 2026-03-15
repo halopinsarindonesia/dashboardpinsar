@@ -52,7 +52,11 @@ export default function RegisterPage() {
     });
 
     if (error || data?.error) {
-      toast({ title: 'Registrasi gagal', description: data?.error || error?.message, variant: 'destructive' });
+      const errMsg = data?.error || error?.message || '';
+      const description = errMsg.includes('already been registered')
+        ? 'Email ini sudah terdaftar. Silakan gunakan email lain atau masuk dengan akun yang sudah ada.'
+        : errMsg;
+      toast({ title: 'Registrasi gagal', description, variant: 'destructive' });
     } else {
       toast({
         title: 'Registrasi berhasil',
