@@ -189,15 +189,15 @@ export default function DashboardOverview() {
         <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {generalStats.map((stat) => (
               <Card key={stat.label}>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">{stat.label}</CardTitle>
-                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                  <stat.icon className={`h-4 w-4 shrink-0 ${stat.color}`} />
                 </CardHeader>
                 <CardContent>
-                  <div className="font-display text-2xl font-bold text-foreground leading-none">{stat.value}</div>
+                  <div className="font-display text-2xl font-bold text-foreground">{stat.value}</div>
                 </CardContent>
               </Card>
             ))}
