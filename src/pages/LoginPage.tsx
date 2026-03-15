@@ -27,13 +27,31 @@ export default function LoginPage() {
         await supabase.auth.signOut({ scope: 'local' });
       }
 
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
         toast({ title: 'Login gagal', description: error.message, variant: 'destructive' });
-      } else {
-        navigate('/dashboard');
+        return;
       }
+
+      // Check profile approval status
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('status')
+        .eq('id', data.user.id)
+        .maybeSingle();
+
+      if (!profile || profile.status !== 'approved') {
+        await supabase.auth.signOut({ scope: 'local' });
+        toast({
+          title: 'Akun belum diverifikasi',
+          description: 'Akun Anda belum diverifikasi. Silakan tunggu hingga proses verifikasi selesai.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      navigate('/dashboard');
     } finally {
       setLoading(false);
     }

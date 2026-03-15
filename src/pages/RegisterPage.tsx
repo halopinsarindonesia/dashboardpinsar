@@ -54,7 +54,7 @@ export default function RegisterPage() {
     if (error || data?.error) {
       const errMsg = data?.error || error?.message || '';
       const description = errMsg.includes('already been registered')
-        ? 'Email ini sudah terdaftar. Silakan gunakan email lain atau masuk dengan akun yang sudah ada.'
+        ? 'Email sudah terdaftar, silakan gunakan email lain.'
         : errMsg;
       toast({ title: 'Registrasi gagal', description, variant: 'destructive' });
     } else {
