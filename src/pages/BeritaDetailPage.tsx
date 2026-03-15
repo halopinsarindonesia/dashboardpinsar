@@ -74,9 +74,10 @@ export default function BeritaDetailPage() {
         </div>
       )}
 
-      <div className="prose max-w-none text-foreground whitespace-pre-wrap leading-relaxed">
-        {blog.content}
-      </div>
+      <div
+        className="prose prose-sm sm:prose-base max-w-none text-foreground leading-relaxed [&_img]:my-4 [&_img]:w-full [&_img]:h-auto [&_img]:rounded-lg [&_iframe]:my-4 [&_iframe]:w-full [&_iframe]:aspect-video [&_iframe]:rounded-lg"
+        dangerouslySetInnerHTML={{ __html: blog.content ?? '' }}
+      />
 
       {/* Share buttons */}
       <div className="mt-10 border-t pt-6">
