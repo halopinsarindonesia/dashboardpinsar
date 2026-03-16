@@ -322,7 +322,7 @@ function PartnersTab() {
 
   async function handleDelete(id: string) {
     const { error } = await supabase.from('cms_partners').delete().eq('id', id);
-    if (!error) { await logAudit({ action: 'delete', module: 'CMS Partner', userId: user?.id, userName: profile?.full_name, oldValue: { id } }); toast({ title: 'Mitra dihapus' }); load(); }
+    if (!error) { await logAudit({ action: 'delete', module: 'CMS Anggota', userId: user?.id, userName: profile?.full_name, oldValue: { id } }); toast({ title: 'Anggota dihapus' }); load(); }
   }
 
   return (
