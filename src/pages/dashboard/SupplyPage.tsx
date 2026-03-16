@@ -43,6 +43,7 @@ export default function SupplyPage() {
   const [eggPrice, setEggPrice] = useState('');
 
   const selectedFarm = useMemo(() => farms.find(f => f.id === selectedFarmId), [farms, selectedFarmId]);
+  // Egg types: layer and puyuh produce eggs
   const isEggType = selectedFarm && ['layer', 'puyuh'].includes(selectedFarm.farm_type);
 
   useEffect(() => { loadData(); }, [user, profile]);
@@ -53,21 +54,19 @@ export default function SupplyPage() {
     let farmsData: Farm[] = [];
 
     if (isSuperadmin) {
-      // Superadmin sees all active farms
       const { data } = await supabase.from('farms').select('*').eq('status', 'active');
-      farmsData = (data as Farm[]) ?? [];
+      farmsData = (data as unknown as Farm[]) ?? [];
     } else {
       // Non-superadmin: only own farms
       const { data: memberData } = await supabase.from('farm_members').select('farm_id').eq('user_id', user.id);
       const farmIds = memberData?.map((m: any) => m.farm_id) ?? [];
       if (farmIds.length > 0) {
         const { data } = await supabase.from('farms').select('*').in('id', farmIds).eq('status', 'active');
-        farmsData = (data as Farm[]) ?? [];
+        farmsData = (data as unknown as Farm[]) ?? [];
       }
     }
     setFarms(farmsData);
 
-    // Load records
     let recordsQuery = supabase
       .from('supply_records').select('*, farms(name, farm_code, farm_type, province)')
       .order('record_date', { ascending: false }).limit(50);
@@ -92,7 +91,7 @@ export default function SupplyPage() {
     const farm = farms.find(f => f.id === farmId);
     if (!farm) return;
     const { data: allRecords } = await supabase.from('supply_records')
-      .select('broiler_input, broiler_sold, broiler_death, layer_input, layer_death')
+      .select('broiler_input, broiler_sold, broiler_death')
       .eq('farm_id', farmId);
     const recs = allRecords ?? [];
     const pop = (farm.broiler_initial_population ?? 0)
@@ -157,6 +156,13 @@ export default function SupplyPage() {
       else {
         await logAudit({ action: 'edit', module: 'Panen', userId: user.id, userName: profile?.full_name, oldValue: editRecord, newValue: payload });
         toast({ title: 'Data panen berhasil diperbarui' });
+
+        // Auto-trigger prapasca if population hits 0
+        if (newPop <= 0) {
+          await supabase.from('farms').update({ status: 'prapasca' as any }).eq('id', selectedFarmId).eq('status', 'active');
+          toast({ title: 'Status diubah', description: 'Populasi habis, status peternakan diubah ke Pra/Pasca.' });
+        }
+
         resetForm(); setDialogOpen(false); loadData();
       }
     } else {
@@ -170,6 +176,13 @@ export default function SupplyPage() {
       else {
         await logAudit({ action: 'create', module: 'Panen', userId: user.id, userName: profile?.full_name, newValue: payload });
         toast({ title: 'Berhasil', description: 'Data panen berhasil disimpan.' });
+
+        // Auto-trigger prapasca if population hits 0
+        if (newPop <= 0) {
+          await supabase.from('farms').update({ status: 'prapasca' as any }).eq('id', selectedFarmId).eq('status', 'active');
+          toast({ title: 'Status diubah', description: 'Populasi habis, status peternakan diubah ke Pra/Pasca.' });
+        }
+
         resetForm(); setDialogOpen(false); loadData();
       }
     }
@@ -265,6 +278,7 @@ export default function SupplyPage() {
                     <th className="px-4 py-3 text-right font-medium text-muted-foreground">Populasi</th>
                     <th className="px-4 py-3 text-right font-medium text-muted-foreground">Masuk</th>
                     <th className="px-4 py-3 text-right font-medium text-muted-foreground">Terjual</th>
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">Kematian</th>
                     <th className="px-4 py-3 text-right font-medium text-muted-foreground">Harga/kg</th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Aksi</th>
                   </tr>
@@ -280,6 +294,7 @@ export default function SupplyPage() {
                         <td className="px-4 py-3 text-right text-foreground">{formatNum(r.broiler_population)}</td>
                         <td className="px-4 py-3 text-right text-foreground">{formatNum(r.broiler_input)}</td>
                         <td className="px-4 py-3 text-right text-foreground">{formatNum(r.broiler_sold)}</td>
+                        <td className="px-4 py-3 text-right text-foreground">{formatNum(r.broiler_death)}</td>
                         <td className="px-4 py-3 text-right font-medium text-foreground">{formatPrice(r.broiler_price_per_kg)}</td>
                         <td className="px-4 py-3">
                           <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>

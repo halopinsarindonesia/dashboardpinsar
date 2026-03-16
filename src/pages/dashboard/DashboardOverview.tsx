@@ -68,6 +68,9 @@ export default function DashboardOverview() {
     setLoading(true);
     const today = fmt(new Date());
 
+    // Auto-inactivate farms with no panen for 30 days
+    await supabase.rpc('auto_inactivate_farms' as any);
+
     // Users count (all roles except superadmin are peternak)
     const [usersRes, farmsRes, todayRes] = await Promise.all([
       supabase.from('profiles').select('id, status, role').neq('role', 'superadmin' as any),
