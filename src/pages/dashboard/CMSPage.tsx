@@ -328,13 +328,13 @@ function PartnersTab() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">Kelola mitra (maks. 10 ditampilkan)</p>
+        <p className="text-sm text-muted-foreground">Kelola anggota (maks. 10 ditampilkan)</p>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild><Button size="sm"><Plus className="mr-2 h-4 w-4" />Tambah Mitra</Button></DialogTrigger>
+          <DialogTrigger asChild><Button size="sm"><Plus className="mr-2 h-4 w-4" />Tambah Anggota</Button></DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Tambah Mitra</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>Tambah Anggota</DialogTitle></DialogHeader>
             <form onSubmit={handleAdd} className="space-y-4">
-              <div><Label>Nama Perusahaan</Label><Input value={name} onChange={e => setName(e.target.value)} required /></div>
+              <div><Label>Nama</Label><Input value={name} onChange={e => setName(e.target.value)} required /></div>
               <div><Label>URL Logo</Label><Input value={logoUrl} onChange={e => setLogoUrl(e.target.value)} required placeholder="https://..." /></div>
               <Button type="submit" className="w-full" disabled={submitting}>{submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Simpan'}</Button>
             </form>
@@ -342,7 +342,7 @@ function PartnersTab() {
         </Dialog>
       </div>
       {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> : partners.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">Belum ada mitra.</p>
+        <p className="py-8 text-center text-sm text-muted-foreground">Belum ada anggota.</p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
           {partners.map(p => (
