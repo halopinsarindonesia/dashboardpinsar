@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Warehouse, Users, AlertCircle, CheckCircle, ClipboardList, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useIndonesiaRegions } from '@/hooks/use-indonesia-regions';
 
 function fmt(d: Date) { return d.toISOString().split('T')[0]; }
 
@@ -46,10 +47,12 @@ const PROVINCES = [
 
 export default function DashboardOverview() {
   const { profile } = useAuth();
+  const { provinces: regionProvinces, cities: regionCities, fetchCities } = useIndonesiaRegions();
   const [filter, setFilter] = useState('wtd');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [provinceFilter, setProvinceFilter] = useState('all');
+  const [cityFilter, setCityFilter] = useState('all');
   const [loading, setLoading] = useState(true);
 
   // Stats
@@ -91,6 +94,10 @@ export default function DashboardOverview() {
     // Apply province filter
     if (provinceFilter !== 'all') {
       allFarms = allFarms.filter((f: any) => f.province === provinceFilter);
+    }
+    // Apply city filter
+    if (cityFilter !== 'all') {
+      allFarms = allFarms.filter((f: any) => f.city === cityFilter);
     }
 
     // Farm breakdown
@@ -156,7 +163,7 @@ export default function DashboardOverview() {
     setTotalActiveFarms(totalActive);
 
     setLoading(false);
-  }, [filter, customStart, customEnd, provinceFilter]);
+  }, [filter, customStart, customEnd, provinceFilter, cityFilter]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -176,13 +183,29 @@ export default function DashboardOverview() {
               {Object.entries(FILTER_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Select value={provinceFilter} onValueChange={setProvinceFilter}>
+          <Select value={provinceFilter} onValueChange={(val) => {
+            setProvinceFilter(val);
+            setCityFilter('all');
+            if (val !== 'all') {
+              const prov = regionProvinces.find(p => p.name === val);
+              if (prov) fetchCities(prov.id);
+            }
+          }}>
             <SelectTrigger className="w-[180px]"><SelectValue placeholder="Semua Provinsi" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Semua Provinsi</SelectItem>
-              {PROVINCES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+              {regionProvinces.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}
             </SelectContent>
           </Select>
+          {provinceFilter !== 'all' && (
+            <Select value={cityFilter} onValueChange={setCityFilter}>
+              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Semua Kota" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Kota</SelectItem>
+                {regionCities.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
 
