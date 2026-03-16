@@ -19,17 +19,16 @@ Deno.serve(async (req) => {
     const { data: { user: caller } } = await supabase.auth.getUser(token);
     if (!caller) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
-    const { data: callerProfile } = await supabase.from('profiles').select('role, full_name').eq('id', caller.id).single();
-    if (!callerProfile || !['dpp', 'dpw'].includes(callerProfile.role)) {
-      return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    // Check if caller is superadmin
+    const { data: callerRoles } = await supabase.from('user_roles').select('role').eq('user_id', caller.id);
+    const isSuperadmin = callerRoles?.some((r: any) => r.role === 'superadmin');
+    
+    if (!isSuperadmin) {
+      return new Response(JSON.stringify({ error: 'Forbidden - only superadmin can create users' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const body = await req.json();
     const { email, password, full_name, phone, role, province, house_address, work_address, status: userStatus } = body;
-
-    if (callerProfile.role === 'dpw' && role === 'dpp') {
-      return new Response(JSON.stringify({ error: 'DPW cannot create DPP users' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
 
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email,
@@ -49,14 +48,18 @@ Deno.serve(async (req) => {
       house_address: house_address || null,
       work_address: work_address || null,
     });
-    if (profileError) return new Response(JSON.stringify({ error: profileError.message }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (profileError) {
+      await supabase.auth.admin.deleteUser(authData.user.id);
+      return new Response(JSON.stringify({ error: profileError.message }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
 
-    // Audit log
+    const { data: callerProfile } = await supabase.from('profiles').select('full_name').eq('id', caller.id).single();
+
     await supabase.from('audit_logs').insert({
       action: 'create',
       module: 'User',
       user_id: caller.id,
-      user_name: callerProfile.full_name,
+      user_name: callerProfile?.full_name,
       new_value: { full_name, email, role, province },
     });
 
