@@ -31,7 +31,7 @@ const PROVINCES = [
 
 interface Farm {
   id: string; farm_code: string; name: string; province: string; city: string | null;
-  district: string | null; kelurahan: string | null;
+  district?: string | null; kelurahan?: string | null;
   farm_type: string; status: string; owner_id?: string | null;
   broiler_initial_population?: number; layer_initial_population?: number;
   kapasitas_kandang?: number;
