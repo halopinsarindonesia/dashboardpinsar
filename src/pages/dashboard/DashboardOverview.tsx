@@ -183,13 +183,29 @@ export default function DashboardOverview() {
               {Object.entries(FILTER_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Select value={provinceFilter} onValueChange={setProvinceFilter}>
+          <Select value={provinceFilter} onValueChange={(val) => {
+            setProvinceFilter(val);
+            setCityFilter('all');
+            if (val !== 'all') {
+              const prov = regionProvinces.find(p => p.name === val);
+              if (prov) fetchCities(prov.id);
+            }
+          }}>
             <SelectTrigger className="w-[180px]"><SelectValue placeholder="Semua Provinsi" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Semua Provinsi</SelectItem>
-              {PROVINCES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+              {regionProvinces.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}
             </SelectContent>
           </Select>
+          {provinceFilter !== 'all' && (
+            <Select value={cityFilter} onValueChange={setCityFilter}>
+              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Semua Kota" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Kota</SelectItem>
+                {regionCities.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
 
