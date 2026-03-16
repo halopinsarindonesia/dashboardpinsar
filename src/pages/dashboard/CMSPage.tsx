@@ -371,7 +371,7 @@ export default function CMSPage() {
           <TabsTrigger value="about"><FileText className="mr-1.5 h-4 w-4" />Tentang Kami</TabsTrigger>
           <TabsTrigger value="contact"><Phone className="mr-1.5 h-4 w-4" />Kontak</TabsTrigger>
           <TabsTrigger value="blog"><Globe className="mr-1.5 h-4 w-4" />Blog</TabsTrigger>
-          <TabsTrigger value="partners"><Handshake className="mr-1.5 h-4 w-4" />Mitra</TabsTrigger>
+          <TabsTrigger value="partners"><Handshake className="mr-1.5 h-4 w-4" />Anggota</TabsTrigger>
         </TabsList>
         <TabsContent value="banner"><BannerTab /></TabsContent>
         <TabsContent value="about"><AboutTab /></TabsContent>
