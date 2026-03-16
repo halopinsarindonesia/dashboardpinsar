@@ -9,19 +9,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { logAudit } from '@/lib/audit';
+import { useIndonesiaRegions } from '@/hooks/use-indonesia-regions';
 import { Plus, Loader2, CheckCircle, XCircle, Pencil } from 'lucide-react';
 
-const PROVINCES = [
-  'Aceh','Sumatera Utara','Sumatera Barat','Riau','Jambi','Sumatera Selatan','Bengkulu','Lampung',
-  'Kep. Bangka Belitung','Kep. Riau','DKI Jakarta','Jawa Barat','Jawa Tengah','DI Yogyakarta',
-  'Jawa Timur','Banten','Bali','Nusa Tenggara Barat','Nusa Tenggara Timur','Kalimantan Barat',
-  'Kalimantan Tengah','Kalimantan Selatan','Kalimantan Timur','Kalimantan Utara','Sulawesi Utara',
-  'Sulawesi Tengah','Sulawesi Selatan','Sulawesi Tenggara','Gorontalo','Sulawesi Barat','Maluku',
-  'Maluku Utara','Papua','Papua Barat','Papua Selatan','Papua Tengah','Papua Pegunungan','Papua Barat Daya',
-];
-
-const ROLE_LABELS: Record<string, string> = { dpp: 'DPP', dpw: 'DPW', peternak: 'Peternak' };
-const STATUS_LABELS: Record<string, string> = { pending: 'Menunggu', approved: 'Disetujui', rejected: 'Ditolak' };
+const ROLE_LABELS: Record<string, string> = { dpp: 'DPP', dpw: 'DPW', peternak: 'Anggota' };
+const STATUS_LABELS: Record<string, string> = { approved: 'Aktif', pending: 'Menunggu', rejected: 'Tidak Aktif' };
 
 interface UserProfile {
   id: string; full_name: string; email: string; phone: string | null;
@@ -32,7 +24,9 @@ interface UserProfile {
 export default function UsersPage() {
   const { profile, user } = useAuth();
   const { toast } = useToast();
+  const { provinces, cities, districts, villages, fetchCities, fetchDistricts, fetchVillages } = useIndonesiaRegions();
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [farmCounts, setFarmCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editUser, setEditUser] = useState<UserProfile | null>(null);
@@ -45,29 +39,34 @@ export default function UsersPage() {
   const [formPassword, setFormPassword] = useState('');
   const [formRole, setFormRole] = useState('peternak');
   const [formProvince, setFormProvince] = useState('');
+  const [formCity, setFormCity] = useState('');
+  const [formDistrict, setFormDistrict] = useState('');
+  const [formVillage, setFormVillage] = useState('');
   const [formStatus, setFormStatus] = useState('approved');
-
-  const isDPP = profile?.role === 'dpp';
-  const isDPW = profile?.role === 'dpw';
 
   useEffect(() => { loadUsers(); }, []);
 
   async function loadUsers() {
     setLoading(true);
-    let query = supabase.from('profiles').select('*').order('created_at', { ascending: false });
+    const [usersRes, farmsRes] = await Promise.all([
+      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+      supabase.from('farms').select('id, owner_id'),
+    ]);
 
-    // DPW can only see DPW and peternak
-    if (isDPW) {
-      query = query.in('role', ['dpw', 'peternak']);
-    }
+    const allUsers = (usersRes.data as UserProfile[] ?? []);
+    // Count farms per user
+    const counts: Record<string, number> = {};
+    (farmsRes.data ?? []).forEach((f: any) => {
+      if (f.owner_id) counts[f.owner_id] = (counts[f.owner_id] || 0) + 1;
+    });
+    setFarmCounts(counts);
 
-    const { data } = await query;
-    // Sort: pending first, then by created_at desc
-    const sorted = (data as UserProfile[] ?? []).sort((a, b) => {
+    // Sort: pending first
+    const sorted = allUsers.sort((a, b) => {
       if (a.status === 'pending' && b.status !== 'pending') return -1;
       if (a.status !== 'pending' && b.status === 'pending') return 1;
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    }).filter(u => u.status !== 'rejected'); // Hide rejected
+    }).filter(u => u.status !== 'rejected');
 
     setUsers(sorted);
     setLoading(false);
@@ -75,7 +74,8 @@ export default function UsersPage() {
 
   function resetForm() {
     setFormName(''); setFormEmail(''); setFormPhone(''); setFormPassword('');
-    setFormRole('peternak'); setFormProvince(''); setFormStatus('approved'); setEditUser(null);
+    setFormRole('peternak'); setFormProvince(''); setFormCity(''); setFormDistrict('');
+    setFormVillage(''); setFormStatus('approved'); setEditUser(null);
   }
 
   function openEdit(u: UserProfile) {
@@ -106,16 +106,9 @@ export default function UsersPage() {
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
-
-    if (isDPW && formRole === 'dpp') {
-      toast({ title: 'DPW tidak bisa membuat user DPP', variant: 'destructive' });
-      setSubmitting(false); return;
-    }
-
     const { data, error } = await supabase.functions.invoke('create-user', {
       body: { email: formEmail, password: formPassword, full_name: formName, phone: formPhone, role: formRole, province: formProvince, status: formStatus },
     });
-
     if (error || data?.error) {
       toast({ title: 'Gagal', description: data?.error || error?.message, variant: 'destructive' });
     } else {
@@ -129,12 +122,10 @@ export default function UsersPage() {
     e.preventDefault();
     if (!editUser) return;
     setSubmitting(true);
-
     const payload: any = { full_name: formName, phone: formPhone || null, role: formRole as any, province: formProvince || null, status: formStatus as any };
     const { error } = await supabase.from('profiles').update(payload).eq('id', editUser.id);
     if (error) { toast({ title: 'Gagal', description: error.message, variant: 'destructive' }); }
     else {
-      // Update user_roles if role changed
       if (formRole !== editUser.role) {
         await supabase.from('user_roles').update({ role: formRole as any }).eq('user_id', editUser.id);
       }
@@ -145,7 +136,7 @@ export default function UsersPage() {
     setSubmitting(false);
   }
 
-  const availableRoles = isDPW ? [['dpw', 'DPW'], ['peternak', 'Peternak']] : [['dpp', 'DPP'], ['dpw', 'DPW'], ['peternak', 'Peternak']];
+  const availableRoles = [['dpp', 'DPP'], ['dpw', 'DPW'], ['peternak', 'Anggota']];
 
   return (
     <div className="space-y-6">
@@ -167,7 +158,7 @@ export default function UsersPage() {
               <div><Label>No. Telepon</Label><Input value={formPhone} onChange={e => setFormPhone(e.target.value)} /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Role</Label>
+                  <Label>Jabatan</Label>
                   <Select value={formRole} onValueChange={setFormRole}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>{availableRoles.map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
@@ -178,18 +169,58 @@ export default function UsersPage() {
                   <Select value={formStatus} onValueChange={setFormStatus}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="approved">Disetujui</SelectItem>
+                      <SelectItem value="approved">Aktif</SelectItem>
                       <SelectItem value="pending">Menunggu</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-              {formRole !== 'dpp' && (
+              <div>
+                <Label>Provinsi</Label>
+                <Select value={formProvince} onValueChange={(val) => {
+                  setFormProvince(val);
+                  setFormCity(''); setFormDistrict(''); setFormVillage('');
+                  const prov = provinces.find(p => p.name === val);
+                  if (prov) fetchCities(prov.id);
+                }}>
+                  <SelectTrigger><SelectValue placeholder="Pilih provinsi" /></SelectTrigger>
+                  <SelectContent>{provinces.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              {formProvince && (
                 <div>
-                  <Label>Provinsi</Label>
-                  <Select value={formProvince} onValueChange={setFormProvince}>
-                    <SelectTrigger><SelectValue placeholder="Pilih provinsi" /></SelectTrigger>
-                    <SelectContent>{PROVINCES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+                  <Label>Kota/Kabupaten</Label>
+                  <Select value={formCity} onValueChange={(val) => {
+                    setFormCity(val);
+                    setFormDistrict(''); setFormVillage('');
+                    const city = cities.find(c => c.name === val);
+                    if (city) fetchDistricts(city.id);
+                  }}>
+                    <SelectTrigger><SelectValue placeholder="Pilih kota" /></SelectTrigger>
+                    <SelectContent>{cities.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              )}
+              {formCity && (
+                <div>
+                  <Label>Kecamatan</Label>
+                  <Select value={formDistrict} onValueChange={(val) => {
+                    setFormDistrict(val);
+                    setFormVillage('');
+                    const dist = districts.find(d => d.name === val);
+                    if (dist) fetchVillages(dist.id);
+                  }}>
+                    <SelectTrigger><SelectValue placeholder="Pilih kecamatan" /></SelectTrigger>
+                    <SelectContent>{districts.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              )}
+              {formDistrict && (
+                <div>
+                  <Label>Kelurahan</Label>
+                  <Select value={formVillage} onValueChange={setFormVillage}>
+                    <SelectTrigger><SelectValue placeholder="Pilih kelurahan" /></SelectTrigger>
+                    <SelectContent>{villages.map(v => <SelectItem key={v.id} value={v.name}>{v.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
               )}
@@ -213,28 +244,30 @@ export default function UsersPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">User ID</th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Nama</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Jabatan</th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Email</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Role</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Provinsi</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Alamat</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Peternakan</th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Terdaftar</th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
                   {users.map(u => (
                     <tr key={u.id} className="border-b last:border-0">
+                      <td className="px-4 py-3 text-xs text-muted-foreground font-mono">{u.id.substring(0, 8)}...</td>
                       <td className="px-4 py-3 font-medium text-foreground">{u.full_name}</td>
+                      <td className="px-4 py-3"><span className="status-badge-pending">{ROLE_LABELS[u.role] || u.role}</span></td>
                       <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
-                      <td className="px-4 py-3"><span className="status-badge-pending">{ROLE_LABELS[u.role]}</span></td>
-                      <td className="px-4 py-3 text-muted-foreground">{u.province || '-'}</td>
+                      <td className="px-4 py-3 text-muted-foreground text-xs">{u.province || '-'}</td>
+                      <td className="px-4 py-3 text-center font-medium text-foreground">{farmCounts[u.id] || 0}</td>
                       <td className="px-4 py-3">
                         <span className={u.status === 'approved' ? 'status-badge-submitted' : u.status === 'pending' ? 'status-badge-pending' : 'status-badge-not-submitted'}>
-                          {STATUS_LABELS[u.status]}
+                          {u.status === 'approved' ? 'Aktif' : u.status === 'pending' ? 'Menunggu' : 'Tidak Aktif'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground">{new Date(u.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
                           {u.status === 'pending' && (
