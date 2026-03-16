@@ -163,7 +163,7 @@ export default function DashboardOverview() {
     setTotalActiveFarms(totalActive);
 
     setLoading(false);
-  }, [filter, customStart, customEnd, provinceFilter]);
+  }, [filter, customStart, customEnd, provinceFilter, cityFilter]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
