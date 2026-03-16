@@ -95,6 +95,10 @@ export default function DashboardOverview() {
     if (provinceFilter !== 'all') {
       allFarms = allFarms.filter((f: any) => f.province === provinceFilter);
     }
+    // Apply city filter
+    if (cityFilter !== 'all') {
+      allFarms = allFarms.filter((f: any) => f.city === cityFilter);
+    }
 
     // Farm breakdown
     const active: Record<string, number> = {};
