@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
+import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 const FARM_TYPE_LABELS: Record<string, string> = {
@@ -9,7 +9,6 @@ const FARM_TYPE_LABELS: Record<string, string> = {
   ayam_pejantan: 'Ayam Pejantan', bebek: 'Bebek', puyuh: 'Puyuh',
 };
 
-// Province center coordinates
 const PROVINCE_COORDS: Record<string, [number, number]> = {
   'Aceh': [4.695, 96.749], 'Sumatera Utara': [2.116, 99.545],
   'Sumatera Barat': [-0.739, 100.800], 'Riau': [1.585, 102.288],
@@ -42,20 +41,20 @@ interface ProvinceData {
 export default function MapPage() {
   const [loading, setLoading] = useState(true);
   const [provinceData, setProvinceData] = useState<ProvinceData[]>([]);
+  const mapRef = useRef<L.Map | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      // Fetch all farms
-      const { data: farms } = await supabase
-        .from('farms')
-        .select('id, province, status, kapasitas_kandang, broiler_initial_population, farm_type');
+      const [farmsRes] = await Promise.all([
+        supabase.from('farms').select('id, province, status, kapasitas_kandang, broiler_initial_population, farm_type'),
+      ]);
 
-      const allFarms = farms ?? [];
+      const allFarms = farmsRes.data ?? [];
       const activeFarms = allFarms.filter((f: any) => f.status === 'active');
       const activeFarmIds = activeFarms.map((f: any) => f.id);
 
-      // Fetch supply records for population calculation
       let supplyByFarm: Record<string, { input: number; sold: number; death: number }> = {};
       if (activeFarmIds.length > 0) {
         const { data: supplyData } = await supabase
@@ -71,7 +70,6 @@ export default function MapPage() {
         });
       }
 
-      // Group by province
       const grouped: Record<string, ProvinceData> = {};
       allFarms.forEach((f: any) => {
         if (!grouped[f.province]) {
@@ -91,19 +89,48 @@ export default function MapPage() {
     })();
   }, []);
 
-  const fmtNum = (n: number) => n.toLocaleString('id-ID');
+  // Initialize map after data loads
+  useEffect(() => {
+    if (loading || !containerRef.current) return;
+    if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-foreground">Peta Peternakan</h1>
-          <p className="text-sm text-muted-foreground">Visualisasi distribusi peternakan di Indonesia</p>
-        </div>
-        <div className="flex h-[500px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
-      </div>
-    );
-  }
+    const map = L.map(containerRef.current).setView([-2.5, 118], 5);
+    mapRef.current = map;
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(map);
+
+    const fmtNum = (n: number) => n.toLocaleString('id-ID');
+
+    provinceData.forEach((pd) => {
+      const coords = PROVINCE_COORDS[pd.province];
+      if (!coords) return;
+      const radius = Math.max(6, Math.min(25, 6 + pd.activeFarms * 2));
+
+      L.circleMarker(coords, {
+        radius,
+        fillColor: pd.activeFarms > 0 ? '#22c55e' : '#9ca3af',
+        fillOpacity: 0.75,
+        color: '#334155',
+        weight: 1,
+      })
+        .bindPopup(`
+          <div style="min-width:180px;font-size:13px">
+            <p style="font-weight:bold;font-size:15px;margin-bottom:8px">${pd.province}</p>
+            <div style="display:flex;justify-content:space-between"><span>Peternakan Aktif:</span><strong>${fmtNum(pd.activeFarms)}</strong></div>
+            <div style="display:flex;justify-content:space-between"><span>Kapasitas:</span><strong>${fmtNum(pd.totalCapacity)}</strong></div>
+            <div style="display:flex;justify-content:space-between"><span>Populasi:</span><strong>${fmtNum(pd.totalPopulation)}</strong></div>
+          </div>
+        `)
+        .addTo(map);
+    });
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+  }, [loading, provinceData]);
 
   return (
     <div className="space-y-6">
@@ -111,48 +138,13 @@ export default function MapPage() {
         <h1 className="font-display text-2xl font-bold text-foreground">Peta Peternakan</h1>
         <p className="text-sm text-muted-foreground">Visualisasi distribusi peternakan di Indonesia</p>
       </div>
-      <div className="h-[600px] rounded-xl border border-border overflow-hidden">
-        <MapContainer
-          center={[-2.5, 118]}
-          zoom={5}
-          scrollWheelZoom={true}
-          style={{ height: '100%', width: '100%' }}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          {provinceData.map((pd) => {
-            const coords = PROVINCE_COORDS[pd.province];
-            if (!coords) return null;
-            const radius = Math.max(6, Math.min(25, 6 + pd.activeFarms * 2));
-            return (
-              <CircleMarker
-                key={pd.province}
-                center={coords}
-                radius={radius}
-                pathOptions={{
-                  fillColor: pd.activeFarms > 0 ? 'hsl(142, 71%, 45%)' : 'hsl(0, 0%, 60%)',
-                  fillOpacity: 0.75,
-                  color: 'hsl(var(--foreground))',
-                  weight: 1,
-                }}
-              >
-                <Popup>
-                  <div className="text-sm min-w-[180px]">
-                    <p className="font-bold text-base mb-2">{pd.province}</p>
-                    <div className="space-y-1">
-                      <div className="flex justify-between"><span>Peternakan Aktif:</span><span className="font-semibold">{fmtNum(pd.activeFarms)}</span></div>
-                      <div className="flex justify-between"><span>Kapasitas:</span><span className="font-semibold">{fmtNum(pd.totalCapacity)}</span></div>
-                      <div className="flex justify-between"><span>Populasi:</span><span className="font-semibold">{fmtNum(pd.totalPopulation)}</span></div>
-                    </div>
-                  </div>
-                </Popup>
-              </CircleMarker>
-            );
-          })}
-        </MapContainer>
-      </div>
+      {loading ? (
+        <div className="flex h-[600px] items-center justify-center rounded-xl border border-border">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <div ref={containerRef} className="h-[600px] rounded-xl border border-border overflow-hidden" />
+      )}
     </div>
   );
 }
