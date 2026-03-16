@@ -73,7 +73,7 @@ export default function FarmsPage() {
     if (isSuperadmin) {
       // Superadmin sees all farms
       const { data } = await supabase.from('farms').select('*').order('created_at', { ascending: false });
-      setFarms((data as Farm[]) ?? []);
+      setFarms((data as unknown as Farm[]) ?? []);
     } else if (user) {
       // Non-superadmin only sees own farms
       const { data: memberFarms } = await supabase.from('farm_members').select('farm_id').eq('user_id', user.id);
