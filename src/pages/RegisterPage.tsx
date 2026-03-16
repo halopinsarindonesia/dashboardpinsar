@@ -8,26 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-const PROVINCES = [
-  'Aceh', 'Sumatera Utara', 'Sumatera Barat', 'Riau', 'Jambi', 'Sumatera Selatan',
-  'Bengkulu', 'Lampung', 'Kep. Bangka Belitung', 'Kep. Riau', 'DKI Jakarta',
-  'Jawa Barat', 'Jawa Tengah', 'DI Yogyakarta', 'Jawa Timur', 'Banten',
-  'Bali', 'Nusa Tenggara Barat', 'Nusa Tenggara Timur', 'Kalimantan Barat',
-  'Kalimantan Tengah', 'Kalimantan Selatan', 'Kalimantan Timur', 'Kalimantan Utara',
-  'Sulawesi Utara', 'Sulawesi Tengah', 'Sulawesi Selatan', 'Sulawesi Tenggara',
-  'Gorontalo', 'Sulawesi Barat', 'Maluku', 'Maluku Utara', 'Papua', 'Papua Barat',
-  'Papua Selatan', 'Papua Tengah', 'Papua Pegunungan', 'Papua Barat Daya',
-];
-
-type Role = 'dpp' | 'dpw' | 'peternak';
+type Jabatan = 'dpp' | 'dpw' | 'peternak';
 
 export default function RegisterPage() {
-  const [role, setRole] = useState<Role>('peternak');
+  const [jabatan, setJabatan] = useState<Jabatan>('peternak');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [province, setProvince] = useState('');
   const [houseAddress, setHouseAddress] = useState('');
   const [workAddress, setWorkAddress] = useState('');
   const [loading, setLoading] = useState(false);
@@ -44,10 +32,10 @@ export default function RegisterPage() {
         password,
         full_name: name,
         phone,
-        role,
-        province: role !== 'dpp' ? province : null,
-        house_address: role === 'peternak' ? houseAddress : null,
-        work_address: role === 'peternak' ? workAddress : null,
+        role: jabatan,
+        province: null,
+        house_address: houseAddress || null,
+        work_address: workAddress || null,
       },
     });
 
@@ -90,23 +78,23 @@ export default function RegisterPage() {
           </div>
 
           <h2 className="font-display text-2xl font-bold text-foreground">Registrasi</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Pilih jenis akun dan lengkapi data Anda</p>
+          <p className="mt-1 text-sm text-muted-foreground">Lengkapi data Anda untuk mendaftar</p>
 
           <form onSubmit={handleRegister} className="mt-6 space-y-4">
             <div>
-              <Label>Daftar Sebagai</Label>
-              <Select value={role} onValueChange={(v) => setRole(v as Role)}>
+              <Label>Jabatan</Label>
+              <Select value={jabatan} onValueChange={(v) => setJabatan(v as Jabatan)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="dpp">DPP (Superadmin)</SelectItem>
-                  <SelectItem value="dpw">DPW (Admin Provinsi)</SelectItem>
-                  <SelectItem value="peternak">Peternak</SelectItem>
+                  <SelectItem value="dpp">DPP</SelectItem>
+                  <SelectItem value="dpw">DPW</SelectItem>
+                  <SelectItem value="peternak">Anggota</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div>
-              <Label htmlFor="name">Nama Lengkap</Label>
+              <Label htmlFor="name">Nama</Label>
               <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
             </div>
 
@@ -116,7 +104,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <Label htmlFor="reg-phone">Nomor Telepon</Label>
+              <Label htmlFor="reg-phone">No. Telepon</Label>
               <Input id="reg-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required />
             </div>
 
@@ -125,32 +113,14 @@ export default function RegisterPage() {
               <Input id="reg-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
             </div>
 
-            {role !== 'dpp' && (
-              <div>
-                <Label>Provinsi</Label>
-                <Select value={province} onValueChange={setProvince}>
-                  <SelectTrigger><SelectValue placeholder="Pilih provinsi" /></SelectTrigger>
-                  <SelectContent>
-                    {PROVINCES.map((p) => (
-                      <SelectItem key={p} value={p}>{p}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {role === 'peternak' && (
-              <>
-                <div>
-                  <Label htmlFor="house-addr">Alamat Rumah (opsional)</Label>
-                  <Input id="house-addr" value={houseAddress} onChange={(e) => setHouseAddress(e.target.value)} />
-                </div>
-                <div>
-                  <Label htmlFor="work-addr">Alamat Kerja (opsional)</Label>
-                  <Input id="work-addr" value={workAddress} onChange={(e) => setWorkAddress(e.target.value)} />
-                </div>
-              </>
-            )}
+            <div>
+              <Label htmlFor="house-addr">Alamat Rumah (opsional)</Label>
+              <Input id="house-addr" value={houseAddress} onChange={(e) => setHouseAddress(e.target.value)} />
+            </div>
+            <div>
+              <Label htmlFor="work-addr">Alamat Kerja (opsional)</Label>
+              <Input id="work-addr" value={workAddress} onChange={(e) => setWorkAddress(e.target.value)} />
+            </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Memproses...' : 'Daftar'}

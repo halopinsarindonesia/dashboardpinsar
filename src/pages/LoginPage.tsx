@@ -34,14 +34,21 @@ export default function LoginPage() {
         return;
       }
 
-      // Check profile approval status
+      // Check profile approval status (superadmin is always approved)
       const { data: profile } = await supabase
         .from('profiles')
-        .select('status')
+        .select('status, role')
         .eq('id', data.user.id)
         .maybeSingle();
 
-      if (!profile || profile.status !== 'approved') {
+      if (!profile) {
+        await supabase.auth.signOut({ scope: 'local' });
+        toast({ title: 'Akun tidak ditemukan', variant: 'destructive' });
+        return;
+      }
+
+      // Superadmin always gets through
+      if (profile.role !== 'superadmin' && profile.status !== 'approved') {
         await supabase.auth.signOut({ scope: 'local' });
         toast({
           title: 'Akun belum diverifikasi',

@@ -8,6 +8,7 @@ interface AuthContextType {
   loading: boolean;
   profile: UserProfile | null;
   signOut: () => Promise<void>;
+  isSuperadmin: boolean;
 }
 
 interface UserProfile {
@@ -15,7 +16,7 @@ interface UserProfile {
   full_name: string;
   email: string;
   phone: string;
-  role: 'dpp' | 'dpw' | 'peternak';
+  role: 'dpp' | 'dpw' | 'peternak' | 'superadmin';
   status: 'pending' | 'approved' | 'rejected';
   province?: string;
   house_address?: string;
@@ -45,6 +46,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   profile: null,
   signOut: async () => {},
+  isSuperadmin: false,
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -54,6 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+
+  const isSuperadmin = profile?.role === 'superadmin';
 
   const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
@@ -134,5 +138,5 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  return <AuthContext.Provider value={{ user, session, loading, profile, signOut }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, session, loading, profile, signOut, isSuperadmin }}>{children}</AuthContext.Provider>;
 }

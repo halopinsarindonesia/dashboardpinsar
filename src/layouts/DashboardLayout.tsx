@@ -6,14 +6,13 @@ import {
   ClipboardList,
   Users,
   FileText,
-  Settings,
   LogOut,
   Map,
-  BarChart3,
   ScrollText,
   Download,
   Menu,
   X,
+  UserCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -23,30 +22,42 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ElementType;
-  roles: string[];
+  superadminOnly?: boolean;
+  allRoles?: boolean;
 }
 
 const navItems: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['dpp', 'dpw'] },
-  { label: 'Peternakan', href: '/dashboard/farms', icon: Warehouse, roles: ['dpp', 'dpw', 'peternak'] },
-  { label: 'Input Panen', href: '/dashboard/supply', icon: ClipboardList, roles: ['dpp', 'dpw', 'peternak'] },
-  { label: 'Peta Peternakan', href: '/dashboard/map', icon: Map, roles: ['dpp', 'dpw'] },
-  { label: 'Pengguna', href: '/dashboard/users', icon: Users, roles: ['dpp', 'dpw'] },
-  { label: 'CMS', href: '/dashboard/cms', icon: FileText, roles: ['dpp'] },
-  { label: 'Ekspor Data', href: '/dashboard/export', icon: Download, roles: ['dpp', 'dpw'] },
-  { label: 'Audit Log', href: '/dashboard/audit', icon: ScrollText, roles: ['dpp', 'dpw'] },
-  { label: 'Pengaturan', href: '/dashboard/settings', icon: Settings, roles: ['dpp', 'dpw', 'peternak'] },
+  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, allRoles: true },
+  { label: 'Peternakan', href: '/dashboard/farms', icon: Warehouse, allRoles: true },
+  { label: 'Input Panen', href: '/dashboard/supply', icon: ClipboardList, allRoles: true },
+  { label: 'Peta Peternakan', href: '/dashboard/map', icon: Map, allRoles: true },
+  { label: 'Pengguna', href: '/dashboard/users', icon: Users, superadminOnly: true },
+  { label: 'CMS', href: '/dashboard/cms', icon: FileText, superadminOnly: true },
+  { label: 'Ekspor Data', href: '/dashboard/export', icon: Download, superadminOnly: true },
+  { label: 'Audit Log', href: '/dashboard/audit', icon: ScrollText, superadminOnly: true },
+  { label: 'Profile', href: '/dashboard/settings', icon: UserCircle, allRoles: true },
 ];
 
 export default function DashboardLayout() {
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, isSuperadmin } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const userRole = profile?.role ?? 'peternak';
 
-  const filteredNav = navItems.filter((item) => item.roles.includes(userRole));
-  const roleLabel = userRole === 'dpp' ? 'DPP (Superadmin)' : userRole === 'dpw' ? 'DPW (Provincial)' : 'Peternak';
+  const ROLE_LABELS: Record<string, string> = {
+    superadmin: 'Superadmin',
+    dpp: 'DPP',
+    dpw: 'DPW',
+    peternak: 'Anggota',
+  };
+
+  const filteredNav = navItems.filter((item) => {
+    if (item.superadminOnly) return isSuperadmin;
+    return true; // allRoles items visible to everyone
+  });
+
+  const roleLabel = ROLE_LABELS[userRole] || userRole;
 
   const handleLogout = async () => {
     try {

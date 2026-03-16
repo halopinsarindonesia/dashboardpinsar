@@ -15,15 +15,16 @@ interface Farm {
   id: string; name: string; farm_code: string; farm_type: string; status: string;
   province: string; city: string | null;
   broiler_initial_population?: number; layer_initial_population?: number;
+  kapasitas_kandang?: number;
 }
 
 const FARM_TYPE_LABELS: Record<string, string> = {
-  broiler: 'Ayam Potong', layer: 'Ayam Petelur', mixed: 'Potong & Petelur',
-  other_cut: 'Unggas Potong Lain', other_egg: 'Unggas Petelur Lain', other_mixed: 'Unggas Campuran Lain',
+  broiler: 'Ayam Broiler', layer: 'Ayam Petelur', ayam_kampung: 'Ayam Kampung',
+  ayam_pejantan: 'Ayam Pejantan', bebek: 'Bebek', puyuh: 'Puyuh',
 };
 
 export default function SupplyPage() {
-  const { profile, user } = useAuth();
+  const { profile, user, isSuperadmin } = useAuth();
   const { toast } = useToast();
   const [farms, setFarms] = useState<Farm[]>([]);
   const [records, setRecords] = useState<any[]>([]);
@@ -33,20 +34,16 @@ export default function SupplyPage() {
   const [editRecord, setEditRecord] = useState<any>(null);
 
   const [selectedFarmId, setSelectedFarmId] = useState('');
-  const [currentBroilerPop, setCurrentBroilerPop] = useState(0);
-  const [currentLayerPop, setCurrentLayerPop] = useState(0);
-  const [broilerInput, setBroilerInput] = useState('');
-  const [broilerSold, setBroilerSold] = useState('');
-  const [broilerDeath, setBroilerDeath] = useState('');
-  const [broilerPrice, setBroilerPrice] = useState('');
-  const [layerInput, setLayerInput] = useState('');
-  const [layerDeath, setLayerDeath] = useState('');
-  const [layerEggProduction, setLayerEggProduction] = useState('');
-  const [layerEggPrice, setLayerEggPrice] = useState('');
+  const [currentPop, setCurrentPop] = useState(0);
+  const [inputCount, setInputCount] = useState('');
+  const [soldCount, setSoldCount] = useState('');
+  const [deathCount, setDeathCount] = useState('');
+  const [pricePerKg, setPricePerKg] = useState('');
+  const [eggProduction, setEggProduction] = useState('');
+  const [eggPrice, setEggPrice] = useState('');
 
   const selectedFarm = useMemo(() => farms.find(f => f.id === selectedFarmId), [farms, selectedFarmId]);
-  const isBroiler = selectedFarm && ['broiler', 'mixed', 'other_cut', 'other_mixed'].includes(selectedFarm.farm_type);
-  const isLayer = selectedFarm && ['layer', 'mixed', 'other_egg', 'other_mixed'].includes(selectedFarm.farm_type);
+  const isEggType = selectedFarm && ['layer', 'puyuh'].includes(selectedFarm.farm_type);
 
   useEffect(() => { loadData(); }, [user, profile]);
 
@@ -54,25 +51,28 @@ export default function SupplyPage() {
     if (!user) return;
     setLoading(true);
     let farmsData: Farm[] = [];
-    if (profile?.role === 'peternak') {
+
+    if (isSuperadmin) {
+      // Superadmin sees all active farms
+      const { data } = await supabase.from('farms').select('*').eq('status', 'active');
+      farmsData = (data as Farm[]) ?? [];
+    } else {
+      // Non-superadmin: only own farms
       const { data: memberData } = await supabase.from('farm_members').select('farm_id').eq('user_id', user.id);
       const farmIds = memberData?.map((m: any) => m.farm_id) ?? [];
       if (farmIds.length > 0) {
         const { data } = await supabase.from('farms').select('*').in('id', farmIds).eq('status', 'active');
         farmsData = (data as Farm[]) ?? [];
       }
-    } else {
-      const { data } = await supabase.from('farms').select('*').eq('status', 'active');
-      farmsData = (data as Farm[]) ?? [];
     }
     setFarms(farmsData);
 
-    // Role-based record filtering
+    // Load records
     let recordsQuery = supabase
       .from('supply_records').select('*, farms(name, farm_code, farm_type, province)')
       .order('record_date', { ascending: false }).limit(50);
 
-    if (profile?.role === 'peternak') {
+    if (!isSuperadmin) {
       const farmIds = farmsData.map(f => f.id);
       if (farmIds.length > 0) {
         recordsQuery = recordsQuery.in('farm_id', farmIds);
@@ -81,26 +81,13 @@ export default function SupplyPage() {
         setLoading(false);
         return;
       }
-    } else if (profile?.role === 'dpw' && profile.province) {
-      // DPW: get farm IDs in their province first
-      const { data: provinceFarms } = await supabase.from('farms').select('id').eq('province', profile.province);
-      const provFarmIds = (provinceFarms ?? []).map((f: any) => f.id);
-      if (provFarmIds.length > 0) {
-        recordsQuery = recordsQuery.in('farm_id', provFarmIds);
-      } else {
-        setRecords([]);
-        setLoading(false);
-        return;
-      }
     }
-    // DPP sees all records (no filter)
 
     const { data: recordsData } = await recordsQuery;
     setRecords(recordsData ?? []);
     setLoading(false);
   }
 
-  // Calculate current population for a farm
   async function calcPopulation(farmId: string) {
     const farm = farms.find(f => f.id === farmId);
     if (!farm) return;
@@ -108,32 +95,29 @@ export default function SupplyPage() {
       .select('broiler_input, broiler_sold, broiler_death, layer_input, layer_death')
       .eq('farm_id', farmId);
     const recs = allRecords ?? [];
-    const bPop = (farm.broiler_initial_population ?? 0) + recs.reduce((s, r) => s + (r.broiler_input ?? 0) - (r.broiler_sold ?? 0) - (r.broiler_death ?? 0), 0);
-    const lPop = (farm.layer_initial_population ?? 0) + recs.reduce((s, r) => s + (r.layer_input ?? 0) - (r.layer_death ?? 0), 0);
-    setCurrentBroilerPop(Math.max(0, bPop));
-    setCurrentLayerPop(Math.max(0, lPop));
+    const pop = (farm.broiler_initial_population ?? 0)
+      + recs.reduce((s, r) => s + (r.broiler_input ?? 0) - (r.broiler_sold ?? 0) - (r.broiler_death ?? 0), 0);
+    setCurrentPop(Math.max(0, pop));
   }
 
   useEffect(() => { if (selectedFarmId) calcPopulation(selectedFarmId); }, [selectedFarmId, farms]);
 
   function resetForm() {
     setSelectedFarmId(''); setEditRecord(null);
-    setBroilerInput(''); setBroilerSold(''); setBroilerDeath(''); setBroilerPrice('');
-    setLayerInput(''); setLayerDeath(''); setLayerEggProduction(''); setLayerEggPrice('');
-    setCurrentBroilerPop(0); setCurrentLayerPop(0);
+    setInputCount(''); setSoldCount(''); setDeathCount(''); setPricePerKg('');
+    setEggProduction(''); setEggPrice('');
+    setCurrentPop(0);
   }
 
   function openEdit(record: any) {
     setEditRecord(record);
     setSelectedFarmId(record.farm_id);
-    setBroilerInput(String(record.broiler_input ?? ''));
-    setBroilerSold(String(record.broiler_sold ?? ''));
-    setBroilerDeath(String(record.broiler_death ?? ''));
-    setBroilerPrice(String(record.broiler_price_per_kg ?? ''));
-    setLayerInput(String(record.layer_input ?? ''));
-    setLayerDeath(String(record.layer_death ?? ''));
-    setLayerEggProduction(String(record.layer_egg_production ?? ''));
-    setLayerEggPrice(String(record.layer_egg_price_per_kg ?? ''));
+    setInputCount(String(record.broiler_input ?? ''));
+    setSoldCount(String(record.broiler_sold ?? ''));
+    setDeathCount(String(record.broiler_death ?? ''));
+    setPricePerKg(String(record.broiler_price_per_kg ?? ''));
+    setEggProduction(String(record.layer_egg_production ?? ''));
+    setEggPrice(String(record.layer_egg_price_per_kg ?? ''));
     setDialogOpen(true);
   }
 
@@ -142,36 +126,29 @@ export default function SupplyPage() {
     if (!selectedFarmId || !user) return;
     setSubmitting(true);
 
-    const bInput = Number(broilerInput) || 0;
-    const bSold = Number(broilerSold) || 0;
-    const bDeath = Number(broilerDeath) || 0;
-    const lInput = Number(layerInput) || 0;
-    const lDeath = Number(layerDeath) || 0;
+    const input = Number(inputCount) || 0;
+    const sold = Number(soldCount) || 0;
+    const death = Number(deathCount) || 0;
 
-    if (isBroiler && (bSold + bDeath > currentBroilerPop + bInput)) {
+    if (sold + death > currentPop + input) {
       toast({ title: 'Validasi gagal', description: 'Terjual + kematian tidak boleh melebihi populasi + input.', variant: 'destructive' });
       setSubmitting(false); return;
     }
-    if (isLayer && lDeath > currentLayerPop + lInput) {
-      toast({ title: 'Validasi gagal', description: 'Kematian tidak boleh melebihi populasi + input.', variant: 'destructive' });
-      setSubmitting(false); return;
-    }
 
-    const newBroilerPop = isBroiler ? currentBroilerPop + bInput - bSold - bDeath : 0;
-    const newLayerPop = isLayer ? currentLayerPop + lInput - lDeath : 0;
+    const newPop = currentPop + input - sold - death;
 
     const payload: any = {
       farm_id: selectedFarmId, submitted_by: user.id,
-      broiler_population: isBroiler ? newBroilerPop : 0,
-      broiler_input: isBroiler ? bInput : 0,
-      broiler_sold: isBroiler ? bSold : 0,
-      broiler_death: isBroiler ? bDeath : 0,
-      broiler_price_per_kg: isBroiler ? (Number(broilerPrice) || null) : null,
-      layer_population: isLayer ? newLayerPop : 0,
-      layer_input: isLayer ? lInput : 0,
-      layer_death: isLayer ? lDeath : 0,
-      layer_egg_production: isLayer ? (Number(layerEggProduction) || 0) : 0,
-      layer_egg_price_per_kg: isLayer ? (Number(layerEggPrice) || null) : null,
+      broiler_population: newPop,
+      broiler_input: input,
+      broiler_sold: sold,
+      broiler_death: death,
+      broiler_price_per_kg: Number(pricePerKg) || null,
+      layer_population: 0,
+      layer_input: 0,
+      layer_death: 0,
+      layer_egg_production: isEggType ? (Number(eggProduction) || 0) : 0,
+      layer_egg_price_per_kg: isEggType ? (Number(eggPrice) || null) : null,
     };
 
     if (editRecord) {
@@ -225,7 +202,7 @@ export default function SupplyPage() {
                     <SelectTrigger><SelectValue placeholder="Pilih peternakan" /></SelectTrigger>
                     <SelectContent>
                       {farms.map(f => (
-                        <SelectItem key={f.id} value={f.id}>{f.farm_code} — {f.name} ({FARM_TYPE_LABELS[f.farm_type]})</SelectItem>
+                        <SelectItem key={f.id} value={f.id}>{f.farm_code} — {f.name} ({FARM_TYPE_LABELS[f.farm_type] || f.farm_type})</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -235,41 +212,30 @@ export default function SupplyPage() {
               {selectedFarm && (
                 <div className="rounded-lg bg-muted p-3 text-sm">
                   <p className="font-medium text-foreground">{selectedFarm.name}</p>
-                  <p className="text-muted-foreground">{FARM_TYPE_LABELS[selectedFarm.farm_type]} • {selectedFarm.province}</p>
+                  <p className="text-muted-foreground">{FARM_TYPE_LABELS[selectedFarm.farm_type] || selectedFarm.farm_type} • {selectedFarm.province}</p>
                 </div>
               )}
 
-              {isBroiler && (
+              {selectedFarm && (
                 <fieldset className="space-y-3 rounded-lg border p-4">
-                  <legend className="px-2 font-display text-sm font-semibold text-foreground">Ayam Potong (Broiler)</legend>
+                  <legend className="px-2 font-display text-sm font-semibold text-foreground">{FARM_TYPE_LABELS[selectedFarm.farm_type] || selectedFarm.farm_type}</legend>
                   <div>
                     <Label>Populasi Saat Ini</Label>
-                    <Input type="number" value={currentBroilerPop} disabled className="bg-muted" />
+                    <Input type="number" value={currentPop} disabled className="bg-muted" />
                     <p className="text-xs text-muted-foreground mt-1">Dihitung otomatis dari data peternakan</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div><Label>Ayam Masuk</Label><Input type="number" min="0" value={broilerInput} onChange={e => setBroilerInput(e.target.value)} /></div>
-                    <div><Label>Ayam Terjual</Label><Input type="number" min="0" value={broilerSold} onChange={e => setBroilerSold(e.target.value)} /></div>
-                    <div><Label>Kematian</Label><Input type="number" min="0" value={broilerDeath} onChange={e => setBroilerDeath(e.target.value)} /></div>
-                    <div><Label>Harga per kg (Rp)</Label><Input type="number" min="0" value={broilerPrice} onChange={e => setBroilerPrice(e.target.value)} /></div>
+                    <div><Label>Masuk</Label><Input type="number" min="0" value={inputCount} onChange={e => setInputCount(e.target.value)} /></div>
+                    <div><Label>Terjual</Label><Input type="number" min="0" value={soldCount} onChange={e => setSoldCount(e.target.value)} /></div>
+                    <div><Label>Kematian</Label><Input type="number" min="0" value={deathCount} onChange={e => setDeathCount(e.target.value)} /></div>
+                    <div><Label>Harga per kg (Rp)</Label><Input type="number" min="0" value={pricePerKg} onChange={e => setPricePerKg(e.target.value)} /></div>
                   </div>
-                </fieldset>
-              )}
-
-              {isLayer && (
-                <fieldset className="space-y-3 rounded-lg border p-4">
-                  <legend className="px-2 font-display text-sm font-semibold text-foreground">Ayam Petelur (Layer)</legend>
-                  <div>
-                    <Label>Populasi Saat Ini</Label>
-                    <Input type="number" value={currentLayerPop} disabled className="bg-muted" />
-                    <p className="text-xs text-muted-foreground mt-1">Dihitung otomatis dari data peternakan</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><Label>Ayam Masuk</Label><Input type="number" min="0" value={layerInput} onChange={e => setLayerInput(e.target.value)} /></div>
-                    <div><Label>Kematian</Label><Input type="number" min="0" value={layerDeath} onChange={e => setLayerDeath(e.target.value)} /></div>
-                    <div><Label>Produksi Telur</Label><Input type="number" min="0" value={layerEggProduction} onChange={e => setLayerEggProduction(e.target.value)} /></div>
-                    <div><Label>Harga Telur per kg (Rp)</Label><Input type="number" min="0" value={layerEggPrice} onChange={e => setLayerEggPrice(e.target.value)} /></div>
-                  </div>
+                  {isEggType && (
+                    <div className="grid grid-cols-2 gap-3 pt-2 border-t">
+                      <div><Label>Produksi Telur</Label><Input type="number" min="0" value={eggProduction} onChange={e => setEggProduction(e.target.value)} /></div>
+                      <div><Label>Harga Telur per kg (Rp)</Label><Input type="number" min="0" value={eggPrice} onChange={e => setEggPrice(e.target.value)} /></div>
+                    </div>
+                  )}
                 </fieldset>
               )}
 
@@ -298,7 +264,7 @@ export default function SupplyPage() {
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Tipe</th>
                     <th className="px-4 py-3 text-right font-medium text-muted-foreground">Populasi</th>
                     <th className="px-4 py-3 text-right font-medium text-muted-foreground">Masuk</th>
-                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">Terjual/Telur</th>
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">Terjual</th>
                     <th className="px-4 py-3 text-right font-medium text-muted-foreground">Harga/kg</th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Aksi</th>
                   </tr>
@@ -306,16 +272,15 @@ export default function SupplyPage() {
                 <tbody>
                   {records.map((r: any) => {
                     const farm = r.farms;
-                    const isBroilerRec = farm?.farm_type && ['broiler', 'mixed', 'other_cut', 'other_mixed'].includes(farm.farm_type);
                     return (
                       <tr key={r.id} className="border-b last:border-0">
                         <td className="px-4 py-3 text-muted-foreground">{new Date(r.record_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                         <td className="px-4 py-3 font-medium text-foreground">{farm?.name ?? '-'}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{farm ? FARM_TYPE_LABELS[farm.farm_type] : '-'}</td>
-                        <td className="px-4 py-3 text-right text-foreground">{formatNum(isBroilerRec ? r.broiler_population : r.layer_population)}</td>
-                        <td className="px-4 py-3 text-right text-foreground">{formatNum(isBroilerRec ? r.broiler_input : r.layer_input)}</td>
-                        <td className="px-4 py-3 text-right text-foreground">{isBroilerRec ? formatNum(r.broiler_sold) : formatNum(r.layer_egg_production)}</td>
-                        <td className="px-4 py-3 text-right font-medium text-foreground">{formatPrice(isBroilerRec ? r.broiler_price_per_kg : r.layer_egg_price_per_kg)}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{farm ? (FARM_TYPE_LABELS[farm.farm_type] || farm.farm_type) : '-'}</td>
+                        <td className="px-4 py-3 text-right text-foreground">{formatNum(r.broiler_population)}</td>
+                        <td className="px-4 py-3 text-right text-foreground">{formatNum(r.broiler_input)}</td>
+                        <td className="px-4 py-3 text-right text-foreground">{formatNum(r.broiler_sold)}</td>
+                        <td className="px-4 py-3 text-right font-medium text-foreground">{formatPrice(r.broiler_price_per_kg)}</td>
                         <td className="px-4 py-3">
                           <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
                         </td>
