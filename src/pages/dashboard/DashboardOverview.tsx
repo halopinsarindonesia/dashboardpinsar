@@ -70,7 +70,7 @@ export default function DashboardOverview() {
 
     // Users count (all roles except superadmin are peternak)
     const [usersRes, farmsRes, todayRes] = await Promise.all([
-      supabase.from('profiles').select('id, status, role').neq('role', 'superadmin'),
+      supabase.from('profiles').select('id, status, role').neq('role', 'superadmin' as any),
       supabase.from('farms').select('id, farm_type, status, kapasitas_kandang, broiler_initial_population, province, city'),
       supabase.from('supply_records').select('farm_id').eq('record_date', today),
     ]);

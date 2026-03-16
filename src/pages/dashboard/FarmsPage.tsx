@@ -80,7 +80,7 @@ export default function FarmsPage() {
       const farmIds = memberFarms?.map((m: any) => m.farm_id) ?? [];
       if (farmIds.length > 0) {
         const { data } = await supabase.from('farms').select('*').in('id', farmIds).order('created_at', { ascending: false });
-        setFarms((data as Farm[]) ?? []);
+        setFarms((data as unknown as Farm[]) ?? []);
       } else {
         setFarms([]);
       }

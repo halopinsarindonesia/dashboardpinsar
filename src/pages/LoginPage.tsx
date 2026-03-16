@@ -48,7 +48,7 @@ export default function LoginPage() {
       }
 
       // Superadmin always gets through
-      if (profile.role !== 'superadmin' && profile.status !== 'approved') {
+      if ((profile.role as string) !== 'superadmin' && profile.status !== 'approved') {
         await supabase.auth.signOut({ scope: 'local' });
         toast({
           title: 'Akun belum diverifikasi',
