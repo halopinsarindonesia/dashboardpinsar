@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { logAudit } from '@/lib/audit';
+import { useIndonesiaRegions } from '@/hooks/use-indonesia-regions';
 import { Plus, Loader2, Pencil, Trash2 } from 'lucide-react';
 
 const FARM_TYPE_LABELS: Record<string, string> = {
@@ -19,15 +20,6 @@ const FARM_TYPE_LABELS: Record<string, string> = {
 const FARM_TYPES = Object.keys(FARM_TYPE_LABELS);
 
 const STATUS_LABELS: Record<string, string> = { active: 'Aktif', prapasca: 'Pra/Pasca', inactive: 'Nonaktif' };
-
-const PROVINCES = [
-  'Aceh','Sumatera Utara','Sumatera Barat','Riau','Jambi','Sumatera Selatan','Bengkulu','Lampung',
-  'Kep. Bangka Belitung','Kep. Riau','DKI Jakarta','Jawa Barat','Jawa Tengah','DI Yogyakarta',
-  'Jawa Timur','Banten','Bali','Nusa Tenggara Barat','Nusa Tenggara Timur','Kalimantan Barat',
-  'Kalimantan Tengah','Kalimantan Selatan','Kalimantan Timur','Kalimantan Utara','Sulawesi Utara',
-  'Sulawesi Tengah','Sulawesi Selatan','Sulawesi Tenggara','Gorontalo','Sulawesi Barat','Maluku',
-  'Maluku Utara','Papua','Papua Barat','Papua Selatan','Papua Tengah','Papua Pegunungan','Papua Barat Daya',
-];
 
 interface Farm {
   id: string; farm_code: string; name: string; province: string; city: string | null;
@@ -41,6 +33,7 @@ interface UserOption { id: string; full_name: string; }
 export default function FarmsPage() {
   const { profile, user, isSuperadmin } = useAuth();
   const { toast } = useToast();
+  const regions = useIndonesiaRegions();
   const [farms, setFarms] = useState<Farm[]>([]);
   const [userList, setUserList] = useState<UserOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,10 +44,14 @@ export default function FarmsPage() {
 
   const [ownerId, setOwnerId] = useState('');
   const [name, setName] = useState('');
-  const [province, setProvince] = useState('');
-  const [city, setCity] = useState('');
-  const [district, setDistrict] = useState('');
-  const [kelurahan, setKelurahan] = useState('');
+  const [provinceId, setProvinceId] = useState('');
+  const [provinceName, setProvinceName] = useState('');
+  const [cityId, setCityId] = useState('');
+  const [cityName, setCityName] = useState('');
+  const [districtId, setDistrictId] = useState('');
+  const [districtName, setDistrictName] = useState('');
+  const [villageId, setVillageId] = useState('');
+  const [villageName, setVillageName] = useState('');
   const [farmType, setFarmType] = useState('broiler');
   const [status, setStatus] = useState('active');
   const [kapasitas, setKapasitas] = useState('0');
@@ -64,18 +61,15 @@ export default function FarmsPage() {
 
   async function loadData() {
     setLoading(true);
-    // Superadmin can pick any user as owner
     if (isSuperadmin) {
       const { data: users } = await supabase.from('profiles').select('id, full_name').eq('status', 'approved');
       setUserList((users as UserOption[]) ?? []);
     }
 
     if (isSuperadmin) {
-      // Superadmin sees all farms
       const { data } = await supabase.from('farms').select('*').order('created_at', { ascending: false });
       setFarms((data as unknown as Farm[]) ?? []);
     } else if (user) {
-      // Non-superadmin only sees own farms
       const { data: memberFarms } = await supabase.from('farm_members').select('farm_id').eq('user_id', user.id);
       const farmIds = memberFarms?.map((m: any) => m.farm_id) ?? [];
       if (farmIds.length > 0) {
@@ -95,7 +89,11 @@ export default function FarmsPage() {
   }
 
   function resetForm() {
-    setOwnerId(''); setName(''); setProvince(''); setCity(''); setDistrict(''); setKelurahan('');
+    setOwnerId(''); setName('');
+    setProvinceId(''); setProvinceName('');
+    setCityId(''); setCityName('');
+    setDistrictId(''); setDistrictName('');
+    setVillageId(''); setVillageName('');
     setFarmType('broiler'); setStatus('active'); setKapasitas('0'); setInitialPop('0'); setEditFarm(null);
   }
 
@@ -103,10 +101,11 @@ export default function FarmsPage() {
     setEditFarm(farm);
     setOwnerId(farm.owner_id || '');
     setName(farm.name);
-    setProvince(farm.province);
-    setCity(farm.city || '');
-    setDistrict(farm.district || '');
-    setKelurahan(farm.kelurahan || '');
+    // For edit, show stored names as text (since we store names not IDs)
+    setProvinceName(farm.province);
+    setCityName(farm.city || '');
+    setDistrictName(farm.district || '');
+    setVillageName(farm.kelurahan || '');
     setFarmType(farm.farm_type);
     setStatus(farm.status);
     setKapasitas(String(farm.kapasitas_kandang ?? 0));
@@ -127,6 +126,39 @@ export default function FarmsPage() {
     setDeleteTarget(null);
   }
 
+  function handleProvinceChange(id: string) {
+    const prov = regions.provinces.find(p => p.id === id);
+    setProvinceId(id);
+    setProvinceName(prov?.name || '');
+    setCityId(''); setCityName('');
+    setDistrictId(''); setDistrictName('');
+    setVillageId(''); setVillageName('');
+    regions.fetchCities(id);
+  }
+
+  function handleCityChange(id: string) {
+    const c = regions.cities.find(c => c.id === id);
+    setCityId(id);
+    setCityName(c?.name || '');
+    setDistrictId(''); setDistrictName('');
+    setVillageId(''); setVillageName('');
+    regions.fetchDistricts(id);
+  }
+
+  function handleDistrictChange(id: string) {
+    const d = regions.districts.find(d => d.id === id);
+    setDistrictId(id);
+    setDistrictName(d?.name || '');
+    setVillageId(''); setVillageName('');
+    regions.fetchVillages(id);
+  }
+
+  function handleVillageChange(id: string) {
+    const v = regions.villages.find(v => v.id === id);
+    setVillageId(id);
+    setVillageName(v?.name || '');
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
@@ -134,6 +166,10 @@ export default function FarmsPage() {
 
     const selectedOwner = isSuperadmin ? ownerId : user.id;
     if (!selectedOwner) { toast({ title: 'Pilih pemilik terlebih dahulu', variant: 'destructive' }); setSubmitting(false); return; }
+
+    if (!editFarm && (!provinceName || !cityName || !districtName || !villageName)) {
+      toast({ title: 'Validasi gagal', description: 'Semua lokasi wajib diisi.', variant: 'destructive' }); setSubmitting(false); return;
+    }
 
     const numKapasitas = Number(kapasitas) || 0;
     const numInitialPop = Number(initialPop) || 0;
@@ -144,7 +180,7 @@ export default function FarmsPage() {
     }
 
     const payload: any = {
-      name, province, city: city || null, district: district || null, kelurahan: kelurahan || null,
+      name, province: provinceName, city: cityName || null, district: districtName || null, kelurahan: villageName || null,
       farm_type: farmType as any, status: status as any,
       owner_id: selectedOwner,
       kapasitas_kandang: numKapasitas,
@@ -161,7 +197,7 @@ export default function FarmsPage() {
         resetForm(); setDialogOpen(false); loadData();
       }
     } else {
-      payload.farm_code = generateFarmCode(province, city);
+      payload.farm_code = generateFarmCode(provinceName, cityName);
       const { data: farm, error } = await supabase.from('farms').insert(payload).select('id').single();
       if (error) { toast({ title: 'Gagal', description: error.message, variant: 'destructive' }); }
       else if (farm) {
@@ -173,6 +209,8 @@ export default function FarmsPage() {
     }
     setSubmitting(false);
   }
+
+  const isEditing = !!editFarm;
 
   return (
     <div className="space-y-6">
@@ -187,7 +225,7 @@ export default function FarmsPage() {
           </DialogTrigger>
           <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle className="font-display">{editFarm ? 'Edit Peternakan' : 'Tambah Peternakan Baru'}</DialogTitle>
+              <DialogTitle className="font-display">{isEditing ? 'Edit Peternakan' : 'Tambah Peternakan Baru'}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Owner selector */}
@@ -212,30 +250,62 @@ export default function FarmsPage() {
                 <Input value={name} onChange={e => setName(e.target.value)} required placeholder="Peternakan Sejahtera" />
               </div>
 
-              {/* Location */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Provinsi</Label>
-                  <Select value={province} onValueChange={(v) => { setProvince(v); setCity(''); setDistrict(''); setKelurahan(''); }}>
-                    <SelectTrigger><SelectValue placeholder="Pilih provinsi" /></SelectTrigger>
-                    <SelectContent>{PROVINCES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Kota/Kabupaten</Label>
-                  <Input value={city} onChange={e => setCity(e.target.value)} placeholder="Bandung" required />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Kecamatan</Label>
-                  <Input value={district} onChange={e => setDistrict(e.target.value)} placeholder="Kecamatan" required />
-                </div>
-                <div>
-                  <Label>Kelurahan</Label>
-                  <Input value={kelurahan} onChange={e => setKelurahan(e.target.value)} placeholder="Kelurahan" required />
-                </div>
-              </div>
+              {/* Location - Cascading Dropdowns */}
+              {isEditing ? (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><Label>Provinsi</Label><Input value={provinceName} onChange={e => setProvinceName(e.target.value)} /></div>
+                    <div><Label>Kota/Kabupaten</Label><Input value={cityName} onChange={e => setCityName(e.target.value)} /></div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><Label>Kecamatan</Label><Input value={districtName} onChange={e => setDistrictName(e.target.value)} /></div>
+                    <div><Label>Kelurahan</Label><Input value={villageName} onChange={e => setVillageName(e.target.value)} /></div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Provinsi</Label>
+                      <Select value={provinceId} onValueChange={handleProvinceChange}>
+                        <SelectTrigger><SelectValue placeholder={regions.loadingProvinces ? 'Memuat...' : 'Pilih Provinsi'} /></SelectTrigger>
+                        <SelectContent>
+                          {regions.provinces.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Kota/Kabupaten</Label>
+                      <Select value={cityId} onValueChange={handleCityChange} disabled={!provinceId}>
+                        <SelectTrigger><SelectValue placeholder={regions.loadingCities ? 'Memuat...' : 'Pilih Kota'} /></SelectTrigger>
+                        <SelectContent>
+                          {regions.cities.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Kecamatan</Label>
+                      <Select value={districtId} onValueChange={handleDistrictChange} disabled={!cityId}>
+                        <SelectTrigger><SelectValue placeholder={regions.loadingDistricts ? 'Memuat...' : 'Pilih Kecamatan'} /></SelectTrigger>
+                        <SelectContent>
+                          {regions.districts.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Kelurahan</Label>
+                      <Select value={villageId} onValueChange={handleVillageChange} disabled={!districtId}>
+                        <SelectTrigger><SelectValue placeholder={regions.loadingVillages ? 'Memuat...' : 'Pilih Kelurahan'} /></SelectTrigger>
+                        <SelectContent>
+                          {regions.villages.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -245,7 +315,7 @@ export default function FarmsPage() {
                     <SelectContent>{FARM_TYPES.map(k => <SelectItem key={k} value={k}>{FARM_TYPE_LABELS[k]}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                {editFarm && (
+                {isEditing && (
                   <div>
                     <Label>Status</Label>
                     <Select value={status} onValueChange={setStatus}>
@@ -256,7 +326,6 @@ export default function FarmsPage() {
                 )}
               </div>
 
-              {/* Population fields */}
               <div>
                 <Label>Kapasitas Kandang</Label>
                 <Input type="number" min="0" value={kapasitas} onChange={e => setKapasitas(e.target.value)} required />
@@ -268,7 +337,7 @@ export default function FarmsPage() {
               </div>
 
               <Button type="submit" className="w-full" disabled={submitting}>
-                {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...</> : editFarm ? 'Simpan Perubahan' : 'Simpan Peternakan'}
+                {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...</> : isEditing ? 'Simpan Perubahan' : 'Simpan Peternakan'}
               </Button>
             </form>
           </DialogContent>
@@ -318,11 +387,11 @@ export default function FarmsPage() {
                     <tr key={farm.id} className="border-b last:border-0">
                       <td className="px-4 py-3 font-mono text-xs">{farm.farm_code}</td>
                       <td className="px-4 py-3 font-medium text-foreground">{farm.name}</td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {farm.province}{farm.city ? `, ${farm.city}` : ''}{farm.district ? `, ${farm.district}` : ''}
+                      <td className="px-4 py-3 text-muted-foreground text-xs">
+                        {[farm.province, farm.city, farm.district, farm.kelurahan].filter(Boolean).join(', ')}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">{FARM_TYPE_LABELS[farm.farm_type] || farm.farm_type}</td>
-                      <td className="px-4 py-3 text-right text-foreground">{((farm as any).kapasitas_kandang ?? 0).toLocaleString('id-ID')}</td>
+                      <td className="px-4 py-3 text-right text-foreground">{(farm.kapasitas_kandang ?? 0).toLocaleString('id-ID')}</td>
                       <td className="px-4 py-3 text-right text-foreground">{(farm.broiler_initial_population ?? 0).toLocaleString('id-ID')}</td>
                       <td className="px-4 py-3">
                         <span className={farm.status === 'active' ? 'status-badge-submitted' : farm.status === 'prapasca' ? 'status-badge-pending' : 'status-badge-not-submitted'}>
