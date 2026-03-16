@@ -316,7 +316,7 @@ function PartnersTab() {
     e.preventDefault(); setSubmitting(true);
     const { error } = await supabase.from('cms_partners').insert({ name, logo_url: logoUrl, sort_order: partners.length });
     if (error) toast({ title: 'Gagal', description: error.message, variant: 'destructive' });
-    else { await logAudit({ action: 'create', module: 'CMS Partner', userId: user?.id, userName: profile?.full_name, newValue: { name } }); toast({ title: 'Mitra ditambahkan' }); setDialogOpen(false); setName(''); setLogoUrl(''); load(); }
+    else { await logAudit({ action: 'create', module: 'CMS Anggota', userId: user?.id, userName: profile?.full_name, newValue: { name } }); toast({ title: 'Anggota ditambahkan' }); setDialogOpen(false); setName(''); setLogoUrl(''); load(); }
     setSubmitting(false);
   }
 
