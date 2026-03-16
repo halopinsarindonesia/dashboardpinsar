@@ -47,10 +47,12 @@ const PROVINCES = [
 
 export default function DashboardOverview() {
   const { profile } = useAuth();
+  const { provinces: regionProvinces, cities: regionCities, fetchCities } = useIndonesiaRegions();
   const [filter, setFilter] = useState('wtd');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [provinceFilter, setProvinceFilter] = useState('all');
+  const [cityFilter, setCityFilter] = useState('all');
   const [loading, setLoading] = useState(true);
 
   // Stats
