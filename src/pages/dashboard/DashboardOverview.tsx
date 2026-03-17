@@ -78,15 +78,17 @@ export default function DashboardOverview() {
     await supabase.rpc('auto_inactivate_farms' as any);
 
     // Users count (all roles except superadmin are peternak)
-    const [usersRes, farmsRes, todayRes] = await Promise.all([
+    const [usersRes, farmsRes, todayRes, membersRes] = await Promise.all([
       supabase.from('profiles').select('id, status, role').neq('role', 'superadmin' as any),
-      supabase.from('farms').select('id, farm_type, status, kapasitas_kandang, broiler_initial_population, province, city'),
+      supabase.from('farms').select('id, farm_type, status, kapasitas_kandang, broiler_initial_population, province, city, owner_id'),
       supabase.from('supply_records').select('farm_id').eq('record_date', today),
+      supabase.from('farm_members').select('user_id, farm_id'),
     ]);
 
     const allUsers = usersRes.data ?? [];
     const approvedUsers = allUsers.filter(u => u.status === 'approved');
     const pendingOrRejected = allUsers.filter(u => u.status !== 'approved');
+    const approvedSet = new Set(approvedUsers.map(u => u.id));
 
     setTotalUsers(allUsers.length);
     setActiveUsers(approvedUsers.length);
