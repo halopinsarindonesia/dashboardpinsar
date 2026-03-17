@@ -70,6 +70,7 @@ export default function DashboardOverview() {
   const [usersByFarmType, setUsersByFarmType] = useState<Record<string, { active: number; inactive: number }>>({});
   const [peternakOpen, setPeternakOpen] = useState(false);
   const [peternakanOpen, setPeternakanOpen] = useState(false);
+  const [kapPopOpen, setKapPopOpen] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -312,43 +313,39 @@ export default function DashboardOverview() {
           </Card>
         </div>
 
-        {/* Peternakan - Row-based layout */}
+        {/* Status Peternakan */}
         <Card>
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Warehouse className="h-5 w-5 text-primary" />
-                <CardTitle className="text-base font-semibold">Peternakan</CardTitle>
-                <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">{fmtNum(farmStats.total)} total</span>
-              </div>
+            <div className="flex items-center gap-2">
+              <Warehouse className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base font-semibold">Status Peternakan</CardTitle>
+              <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">{fmtNum(farmStats.total)} total</span>
             </div>
           </CardHeader>
-          <CardContent className="pt-0">
-            {/* Summary row */}
-            <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
-              <div className="rounded-lg bg-muted/50 p-3">
-                <p className="text-xs text-muted-foreground">Aktif</p>
-                <p className="font-display text-xl font-bold text-foreground">{fmtNum(farmStats.totalActive)}</p>
+          <CardContent className="space-y-0 pt-0">
+            <div className="divide-y divide-border">
+              <div className="flex items-center justify-between py-3">
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-success" />
+                  <span className="text-sm text-muted-foreground">Aktif</span>
+                </div>
+                <span className="font-display text-lg font-bold text-foreground">{fmtNum(farmStats.totalActive)}</span>
               </div>
-              <div className="rounded-lg bg-muted/50 p-3">
-                <p className="text-xs text-muted-foreground">Pra/Pasca</p>
-                <p className="font-display text-xl font-bold text-foreground">{fmtNum(farmStats.totalPrapasca)}</p>
+              <div className="flex items-center justify-between py-3">
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-warning" />
+                  <span className="text-sm text-muted-foreground">Pra / Pasca</span>
+                </div>
+                <span className="font-display text-lg font-bold text-foreground">{fmtNum(farmStats.totalPrapasca)}</span>
               </div>
-              <div className="rounded-lg bg-muted/50 p-3">
-                <p className="text-xs text-muted-foreground">Tidak Aktif</p>
-                <p className="font-display text-xl font-bold text-foreground">{fmtNum(farmStats.totalInactive)}</p>
-              </div>
-              <div className="rounded-lg bg-muted/50 p-3">
-                <p className="text-xs text-muted-foreground">Kapasitas</p>
-                <p className="font-display text-xl font-bold text-foreground">{fmtNum(capacityStats.total)}</p>
-              </div>
-              <div className="rounded-lg bg-muted/50 p-3 col-span-2 sm:col-span-1">
-                <p className="text-xs text-muted-foreground">Populasi</p>
-                <p className="font-display text-xl font-bold text-foreground">{fmtNum(populationStats.total)}</p>
+              <div className="flex items-center justify-between py-3">
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-destructive" />
+                  <span className="text-sm text-muted-foreground">Tidak Aktif</span>
+                </div>
+                <span className="font-display text-lg font-bold text-foreground">{fmtNum(farmStats.totalInactive)}</span>
               </div>
             </div>
-
-            {/* Expandable per-type breakdown */}
             <Collapsible open={peternakanOpen} onOpenChange={setPeternakanOpen}>
               <CollapsibleTrigger className="flex w-full items-center justify-center gap-1 py-2.5 text-xs text-muted-foreground hover:text-foreground transition-colors border-t border-border">
                 <span>{peternakanOpen ? 'Sembunyikan' : 'Lihat'} detail per tipe produk</span>
@@ -361,14 +358,14 @@ export default function DashboardOverview() {
                     const p = farmStats.prapasca[t] || 0;
                     const ia = farmStats.inactive[t] || 0;
                     const total = a + p + ia;
-                    if (total === 0 && (capacityStats.byType[t] || 0) === 0) return null;
+                    if (total === 0) return null;
                     return (
                       <div key={t} className="rounded-lg border border-border p-3">
                         <div className="mb-2 flex items-center justify-between">
                           <span className="text-sm font-semibold text-foreground">{FARM_TYPE_LABELS[t]}</span>
                           <span className="text-xs text-muted-foreground">{fmtNum(total)} farm</span>
                         </div>
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-1 sm:grid-cols-5 text-sm">
+                        <div className="grid grid-cols-3 gap-x-4 text-sm">
                           <div className="flex justify-between sm:flex-col sm:gap-0">
                             <span className="text-xs text-muted-foreground">Aktif</span>
                             <span className="font-medium text-foreground">{fmtNum(a)}</span>
@@ -381,13 +378,59 @@ export default function DashboardOverview() {
                             <span className="text-xs text-muted-foreground">Tidak Aktif</span>
                             <span className="font-medium text-foreground">{fmtNum(ia)}</span>
                           </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </CardContent>
+        </Card>
+
+        {/* Kapasitas & Populasi */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Warehouse className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base font-semibold">Kapasitas & Populasi</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-0 pt-0">
+            <div className="divide-y divide-border">
+              <div className="flex items-center justify-between py-3">
+                <span className="text-sm text-muted-foreground">Total Kapasitas Kandang</span>
+                <span className="font-display text-lg font-bold text-foreground">{fmtNum(capacityStats.total)}</span>
+              </div>
+              <div className="flex items-center justify-between py-3">
+                <span className="text-sm text-muted-foreground">Total Populasi</span>
+                <span className="font-display text-lg font-bold text-foreground">{fmtNum(populationStats.total)}</span>
+              </div>
+            </div>
+            <Collapsible open={kapPopOpen} onOpenChange={setKapPopOpen}>
+              <CollapsibleTrigger className="flex w-full items-center justify-center gap-1 py-2.5 text-xs text-muted-foreground hover:text-foreground transition-colors border-t border-border">
+                <span>{kapPopOpen ? 'Sembunyikan' : 'Lihat'} detail per tipe produk</span>
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${kapPopOpen ? 'rotate-180' : ''}`} />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="space-y-2 pt-2">
+                  {FARM_TYPES.map((t) => {
+                    const cap = capacityStats.byType[t] || 0;
+                    const pop = populationStats.byType[t] || 0;
+                    if (cap === 0 && pop === 0) return null;
+                    return (
+                      <div key={t} className="rounded-lg border border-border p-3">
+                        <div className="mb-2">
+                          <span className="text-sm font-semibold text-foreground">{FARM_TYPE_LABELS[t]}</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-4 text-sm">
                           <div className="flex justify-between sm:flex-col sm:gap-0">
                             <span className="text-xs text-muted-foreground">Kapasitas</span>
-                            <span className="font-medium text-foreground">{fmtNum(capacityStats.byType[t] || 0)}</span>
+                            <span className="font-medium text-foreground">{fmtNum(cap)}</span>
                           </div>
-                          <div className="flex justify-between sm:flex-col sm:gap-0 col-span-2 sm:col-span-1">
+                          <div className="flex justify-between sm:flex-col sm:gap-0">
                             <span className="text-xs text-muted-foreground">Populasi</span>
-                            <span className="font-medium text-foreground">{fmtNum(populationStats.byType[t] || 0)}</span>
+                            <span className="font-medium text-foreground">{fmtNum(pop)}</span>
                           </div>
                         </div>
                       </div>
