@@ -23,7 +23,7 @@ const FARM_TYPE_LABELS: Record<string, string> = {
 };
 const STATUS_LABELS: Record<string, string> = { active: 'Aktif', prapasca: 'Pra/Pasca', inactive: 'Nonaktif' };
 
-type ExportCategory = 'users' | 'panen' | 'harga' | 'audit';
+type ExportCategory = 'users' | 'produksi' | 'harga' | 'audit';
 type TimeframeType = 'today' | 'week' | 'month';
 type DownloadJob = {
   id: string;
@@ -185,10 +185,10 @@ export default function ExportPage() {
     }
   }
 
-  async function exportPanen() {
+  async function exportProduksi() {
     const { start, end } = getDateRange();
-    const filename = `panen_${start}_${end}.${exportFormat}`;
-    const jobId = addJob('Data Panen', filename);
+    const filename = `produksi_${start}_${end}.${exportFormat}`;
+    const jobId = addJob('Data Produksi', filename);
     setDialogCategory(null);
 
     try {
@@ -205,9 +205,9 @@ export default function ExportPage() {
         'Prod. Telur': r.layer_egg_production, 'Harga Telur/kg': r.layer_egg_price_per_kg,
       }));
 
-      const blob = makeFile(rows, 'Panen', filename);
+      const blob = makeFile(rows, 'Produksi', filename);
       updateJob(jobId, { status: 'ready', blob, rows: rows.length });
-      await logAudit({ action: 'create', module: 'Export', userId: user?.id, userName: profile?.full_name, newValue: { type: 'panen', start, end, rows: rows.length } });
+      await logAudit({ action: 'create', module: 'Export', userId: user?.id, userName: profile?.full_name, newValue: { type: 'produksi', start, end, rows: rows.length } });
       toast({ title: 'Data siap diunduh', description: `${rows.length} baris` });
     } catch {
       updateJob(jobId, { status: 'error' });
@@ -274,14 +274,14 @@ export default function ExportPage() {
 
   function handleExport() {
     if (dialogCategory === 'users') exportUsers();
-    else if (dialogCategory === 'panen') exportPanen();
+    else if (dialogCategory === 'produksi') exportProduksi();
     else if (dialogCategory === 'harga') exportHarga();
     else if (dialogCategory === 'audit') exportAudit();
   }
 
   const categories = [
     { key: 'users' as ExportCategory, label: 'Data Pengguna & Peternakan', desc: 'Ekspor semua data pengguna beserta peternakan mereka', icon: Users, noTimeframe: true },
-    { key: 'panen' as ExportCategory, label: 'Data Panen', desc: 'Ekspor data panen berdasarkan periode waktu', icon: FileSpreadsheet, noTimeframe: false },
+    { key: 'produksi' as ExportCategory, label: 'Data Produksi', desc: 'Ekspor data produksi berdasarkan periode waktu', icon: FileSpreadsheet, noTimeframe: false },
     { key: 'harga' as ExportCategory, label: 'Harga Per Daerah', desc: 'Ekspor rata-rata harga per wilayah', icon: DollarSign, noTimeframe: false },
     { key: 'audit' as ExportCategory, label: 'Audit Log', desc: 'Ekspor log aktivitas sistem', icon: ClipboardList, noTimeframe: false },
   ];
