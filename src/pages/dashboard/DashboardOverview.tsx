@@ -167,6 +167,26 @@ export default function DashboardOverview() {
     setSubmittedToday(todayFarms.size);
     setTotalActiveFarms(totalActive);
 
+    // Count unique users per farm type
+    const farmById = new Map(allFarms.map((f: any) => [f.id, f]));
+    const members = membersRes.data ?? [];
+    const uByType: Record<string, { activeSet: Set<string>; inactiveSet: Set<string> }> = {};
+    FARM_TYPES.forEach(t => { uByType[t] = { activeSet: new Set(), inactiveSet: new Set() }; });
+    members.forEach((m: any) => {
+      const farm = farmById.get(m.farm_id);
+      if (!farm) return;
+      const ft = farm.farm_type;
+      if (!uByType[ft]) uByType[ft] = { activeSet: new Set(), inactiveSet: new Set() };
+      if (approvedSet.has(m.user_id)) {
+        uByType[ft].activeSet.add(m.user_id);
+      } else {
+        uByType[ft].inactiveSet.add(m.user_id);
+      }
+    });
+    const uByTypeResult: Record<string, { active: number; inactive: number }> = {};
+    FARM_TYPES.forEach(t => { uByTypeResult[t] = { active: uByType[t].activeSet.size, inactive: uByType[t].inactiveSet.size }; });
+    setUsersByFarmType(uByTypeResult);
+
     setLoading(false);
   }, [filter, customStart, customEnd, provinceFilter, cityFilter]);
 
