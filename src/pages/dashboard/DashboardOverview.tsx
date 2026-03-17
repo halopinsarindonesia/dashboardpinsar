@@ -348,46 +348,54 @@ export default function DashboardOverview() {
               </div>
             </div>
 
-            {/* Per-type breakdown as rows */}
-            <div className="space-y-2">
-              {FARM_TYPES.map((t) => {
-                const a = farmStats.active[t] || 0;
-                const p = farmStats.prapasca[t] || 0;
-                const ia = farmStats.inactive[t] || 0;
-                const total = a + p + ia;
-                if (total === 0 && (capacityStats.byType[t] || 0) === 0) return null;
-                return (
-                  <div key={t} className="rounded-lg border border-border p-3">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-sm font-semibold text-foreground">{FARM_TYPE_LABELS[t]}</span>
-                      <span className="text-xs text-muted-foreground">{fmtNum(total)} farm</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-1 sm:grid-cols-5 text-sm">
-                      <div className="flex justify-between sm:flex-col sm:gap-0">
-                        <span className="text-xs text-muted-foreground">Aktif</span>
-                        <span className="font-medium text-foreground">{fmtNum(a)}</span>
+            {/* Expandable per-type breakdown */}
+            <Collapsible open={peternakanOpen} onOpenChange={setPeternakanOpen}>
+              <CollapsibleTrigger className="flex w-full items-center justify-center gap-1 py-2.5 text-xs text-muted-foreground hover:text-foreground transition-colors border-t border-border">
+                <span>{peternakanOpen ? 'Sembunyikan' : 'Lihat'} detail per tipe produk</span>
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${peternakanOpen ? 'rotate-180' : ''}`} />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="space-y-2 pt-2">
+                  {FARM_TYPES.map((t) => {
+                    const a = farmStats.active[t] || 0;
+                    const p = farmStats.prapasca[t] || 0;
+                    const ia = farmStats.inactive[t] || 0;
+                    const total = a + p + ia;
+                    if (total === 0 && (capacityStats.byType[t] || 0) === 0) return null;
+                    return (
+                      <div key={t} className="rounded-lg border border-border p-3">
+                        <div className="mb-2 flex items-center justify-between">
+                          <span className="text-sm font-semibold text-foreground">{FARM_TYPE_LABELS[t]}</span>
+                          <span className="text-xs text-muted-foreground">{fmtNum(total)} farm</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-1 sm:grid-cols-5 text-sm">
+                          <div className="flex justify-between sm:flex-col sm:gap-0">
+                            <span className="text-xs text-muted-foreground">Aktif</span>
+                            <span className="font-medium text-foreground">{fmtNum(a)}</span>
+                          </div>
+                          <div className="flex justify-between sm:flex-col sm:gap-0">
+                            <span className="text-xs text-muted-foreground">Pra/Pasca</span>
+                            <span className="font-medium text-foreground">{fmtNum(p)}</span>
+                          </div>
+                          <div className="flex justify-between sm:flex-col sm:gap-0">
+                            <span className="text-xs text-muted-foreground">Tidak Aktif</span>
+                            <span className="font-medium text-foreground">{fmtNum(ia)}</span>
+                          </div>
+                          <div className="flex justify-between sm:flex-col sm:gap-0">
+                            <span className="text-xs text-muted-foreground">Kapasitas</span>
+                            <span className="font-medium text-foreground">{fmtNum(capacityStats.byType[t] || 0)}</span>
+                          </div>
+                          <div className="flex justify-between sm:flex-col sm:gap-0 col-span-2 sm:col-span-1">
+                            <span className="text-xs text-muted-foreground">Populasi</span>
+                            <span className="font-medium text-foreground">{fmtNum(populationStats.byType[t] || 0)}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex justify-between sm:flex-col sm:gap-0">
-                        <span className="text-xs text-muted-foreground">Pra/Pasca</span>
-                        <span className="font-medium text-foreground">{fmtNum(p)}</span>
-                      </div>
-                      <div className="flex justify-between sm:flex-col sm:gap-0">
-                        <span className="text-xs text-muted-foreground">Tidak Aktif</span>
-                        <span className="font-medium text-foreground">{fmtNum(ia)}</span>
-                      </div>
-                      <div className="flex justify-between sm:flex-col sm:gap-0">
-                        <span className="text-xs text-muted-foreground">Kapasitas</span>
-                        <span className="font-medium text-foreground">{fmtNum(capacityStats.byType[t] || 0)}</span>
-                      </div>
-                      <div className="flex justify-between sm:flex-col sm:gap-0 col-span-2 sm:col-span-1">
-                        <span className="text-xs text-muted-foreground">Populasi</span>
-                        <span className="font-medium text-foreground">{fmtNum(populationStats.byType[t] || 0)}</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                    );
+                  })}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </CardContent>
         </Card>
         </>
