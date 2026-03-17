@@ -10,13 +10,6 @@ async function fetchRegions(type: string, id?: string): Promise<Region[]> {
   const params = new URLSearchParams({ type });
   if (id) params.set('id', id);
 
-  const { data, error } = await supabase.functions.invoke('indonesia-regions', {
-    body: null,
-    headers: {},
-    method: 'GET',
-  });
-
-  // Use fetch directly since supabase.functions.invoke doesn't support query params well
   const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/indonesia-regions?${params.toString()}`;
   const res = await fetch(url, {
     headers: {
