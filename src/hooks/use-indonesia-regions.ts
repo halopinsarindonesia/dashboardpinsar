@@ -1,10 +1,32 @@
 import { useState, useEffect, useCallback } from 'react';
-
-const BASE_URL = 'https://emsifa.github.io/api-wilayah-indonesia/api';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Region {
   id: string;
   name: string;
+}
+
+async function fetchRegions(type: string, id?: string): Promise<Region[]> {
+  const params = new URLSearchParams({ type });
+  if (id) params.set('id', id);
+
+  const { data, error } = await supabase.functions.invoke('indonesia-regions', {
+    body: null,
+    headers: {},
+    method: 'GET',
+  });
+
+  // Use fetch directly since supabase.functions.invoke doesn't support query params well
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/indonesia-regions?${params.toString()}`;
+  const res = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+    },
+  });
+
+  if (!res.ok) return [];
+  const raw: Region[] = await res.json();
+  return raw.map(r => ({ ...r, name: titleCase(r.name) }));
 }
 
 export function useIndonesiaRegions() {
@@ -19,12 +41,8 @@ export function useIndonesiaRegions() {
 
   useEffect(() => {
     setLoadingProvinces(true);
-    fetch(`${BASE_URL}/provinces.json`)
-      .then(r => r.json())
-      .then((data: Region[]) => {
-        // Title case the names
-        setProvinces(data.map(p => ({ ...p, name: titleCase(p.name) })));
-      })
+    fetchRegions('provinces')
+      .then(setProvinces)
       .catch(() => setProvinces([]))
       .finally(() => setLoadingProvinces(false));
   }, []);
@@ -35,9 +53,8 @@ export function useIndonesiaRegions() {
     setVillages([]);
     if (!provinceId) return;
     setLoadingCities(true);
-    fetch(`${BASE_URL}/regencies/${provinceId}.json`)
-      .then(r => r.json())
-      .then((data: Region[]) => setCities(data.map(c => ({ ...c, name: titleCase(c.name) }))))
+    fetchRegions('regencies', provinceId)
+      .then(setCities)
       .catch(() => setCities([]))
       .finally(() => setLoadingCities(false));
   }, []);
@@ -47,9 +64,8 @@ export function useIndonesiaRegions() {
     setVillages([]);
     if (!cityId) return;
     setLoadingDistricts(true);
-    fetch(`${BASE_URL}/districts/${cityId}.json`)
-      .then(r => r.json())
-      .then((data: Region[]) => setDistricts(data.map(d => ({ ...d, name: titleCase(d.name) }))))
+    fetchRegions('districts', cityId)
+      .then(setDistricts)
       .catch(() => setDistricts([]))
       .finally(() => setLoadingDistricts(false));
   }, []);
@@ -58,9 +74,8 @@ export function useIndonesiaRegions() {
     setVillages([]);
     if (!districtId) return;
     setLoadingVillages(true);
-    fetch(`${BASE_URL}/villages/${districtId}.json`)
-      .then(r => r.json())
-      .then((data: Region[]) => setVillages(data.map(v => ({ ...v, name: titleCase(v.name) }))))
+    fetchRegions('villages', districtId)
+      .then(setVillages)
       .catch(() => setVillages([]))
       .finally(() => setLoadingVillages(false));
   }, []);
