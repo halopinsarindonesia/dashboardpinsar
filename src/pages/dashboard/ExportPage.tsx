@@ -23,7 +23,7 @@ const FARM_TYPE_LABELS: Record<string, string> = {
 };
 const STATUS_LABELS: Record<string, string> = { active: 'Aktif', prapasca: 'Pra/Pasca', inactive: 'Nonaktif' };
 
-type ExportCategory = 'users' | 'panen' | 'harga' | 'audit';
+type ExportCategory = 'users' | 'produksi' | 'harga' | 'audit';
 type TimeframeType = 'today' | 'week' | 'month';
 type DownloadJob = {
   id: string;
