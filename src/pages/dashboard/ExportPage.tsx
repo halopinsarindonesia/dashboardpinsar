@@ -185,10 +185,10 @@ export default function ExportPage() {
     }
   }
 
-  async function exportPanen() {
+  async function exportProduksi() {
     const { start, end } = getDateRange();
-    const filename = `panen_${start}_${end}.${exportFormat}`;
-    const jobId = addJob('Data Panen', filename);
+    const filename = `produksi_${start}_${end}.${exportFormat}`;
+    const jobId = addJob('Data Produksi', filename);
     setDialogCategory(null);
 
     try {
@@ -205,9 +205,9 @@ export default function ExportPage() {
         'Prod. Telur': r.layer_egg_production, 'Harga Telur/kg': r.layer_egg_price_per_kg,
       }));
 
-      const blob = makeFile(rows, 'Panen', filename);
+      const blob = makeFile(rows, 'Produksi', filename);
       updateJob(jobId, { status: 'ready', blob, rows: rows.length });
-      await logAudit({ action: 'create', module: 'Export', userId: user?.id, userName: profile?.full_name, newValue: { type: 'panen', start, end, rows: rows.length } });
+      await logAudit({ action: 'create', module: 'Export', userId: user?.id, userName: profile?.full_name, newValue: { type: 'produksi', start, end, rows: rows.length } });
       toast({ title: 'Data siap diunduh', description: `${rows.length} baris` });
     } catch {
       updateJob(jobId, { status: 'error' });
