@@ -32,8 +32,8 @@ const FILTER_LABELS: Record<string, string> = {
 };
 
 const FARM_TYPE_LABELS: Record<string, string> = {
-  broiler: 'Ayam Broiler', layer: 'Ayam Petelur', ayam_kampung: 'Ayam Kampung',
-  ayam_pejantan: 'Ayam Pejantan', bebek: 'Bebek', puyuh: 'Puyuh',
+  broiler: 'Ayam Broiler', layer: 'Ayam Petelur', mixed: 'Ayam Kampung',
+  other_cut: 'Ayam Pejantan', other_egg: 'Bebek', other_mixed: 'Puyuh',
 };
 const FARM_TYPES = Object.keys(FARM_TYPE_LABELS);
 

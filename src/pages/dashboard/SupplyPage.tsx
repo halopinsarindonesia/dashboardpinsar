@@ -19,8 +19,8 @@ interface Farm {
 }
 
 const FARM_TYPE_LABELS: Record<string, string> = {
-  broiler: 'Ayam Broiler', layer: 'Ayam Petelur', ayam_kampung: 'Ayam Kampung',
-  ayam_pejantan: 'Ayam Pejantan', bebek: 'Bebek', puyuh: 'Puyuh',
+  broiler: 'Ayam Broiler', layer: 'Ayam Petelur', mixed: 'Ayam Kampung',
+  other_cut: 'Ayam Pejantan', other_egg: 'Bebek', other_mixed: 'Puyuh',
 };
 
 export default function SupplyPage() {
@@ -44,7 +44,7 @@ export default function SupplyPage() {
 
   const selectedFarm = useMemo(() => farms.find(f => f.id === selectedFarmId), [farms, selectedFarmId]);
   // Egg types: layer and puyuh produce eggs
-  const isEggType = selectedFarm && ['layer', 'puyuh'].includes(selectedFarm.farm_type);
+  const isEggType = selectedFarm && ['layer', 'other_egg'].includes(selectedFarm.farm_type);
 
   useEffect(() => { loadData(); }, [user, profile]);
 
