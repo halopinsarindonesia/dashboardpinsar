@@ -277,6 +277,7 @@ export type Database = {
           farm_type: Database["public"]["Enums"]["farm_type"]
           id: string
           kapasitas_kandang: number
+          kelurahan: string | null
           latitude: number | null
           layer_initial_population: number
           longitude: number | null
@@ -299,6 +300,7 @@ export type Database = {
           farm_type?: Database["public"]["Enums"]["farm_type"]
           id?: string
           kapasitas_kandang?: number
+          kelurahan?: string | null
           latitude?: number | null
           layer_initial_population?: number
           longitude?: number | null
@@ -321,6 +323,7 @@ export type Database = {
           farm_type?: Database["public"]["Enums"]["farm_type"]
           id?: string
           kapasitas_kandang?: number
+          kelurahan?: string | null
           latitude?: number | null
           layer_initial_population?: number
           longitude?: number | null
