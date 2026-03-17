@@ -67,6 +67,8 @@ export default function DashboardOverview() {
   const [populationStats, setPopulationStats] = useState<{ total: number; byType: Record<string, number> }>({ total: 0, byType: {} });
   const [submittedToday, setSubmittedToday] = useState(0);
   const [totalActiveFarms, setTotalActiveFarms] = useState(0);
+  const [usersByFarmType, setUsersByFarmType] = useState<Record<string, { active: number; inactive: number }>>({});
+  const [peternakOpen, setPeternakOpen] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
