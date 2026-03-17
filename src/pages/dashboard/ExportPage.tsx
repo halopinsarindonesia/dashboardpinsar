@@ -274,7 +274,7 @@ export default function ExportPage() {
 
   function handleExport() {
     if (dialogCategory === 'users') exportUsers();
-    else if (dialogCategory === 'panen') exportPanen();
+    else if (dialogCategory === 'produksi') exportProduksi();
     else if (dialogCategory === 'harga') exportHarga();
     else if (dialogCategory === 'audit') exportAudit();
   }
