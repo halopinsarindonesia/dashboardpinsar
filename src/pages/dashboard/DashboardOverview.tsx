@@ -251,68 +251,77 @@ export default function DashboardOverview() {
           {/* Peternakan Stats */}
           <div>
             <h2 className="mb-3 font-display text-lg font-semibold text-foreground">Peternakan ({fmtNum(farmStats.total)} total)</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {/* Active */}
+            
+            {/* Summary cards */}
+            <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-5 mb-4">
               <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Aktif ({fmtNum(farmStats.totalActive)})</CardTitle></CardHeader>
-                <CardContent className="space-y-1">
-                  {FARM_TYPES.map(t => (
-                    <div key={t} className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">{FARM_TYPE_LABELS[t]}</span>
-                      <span className="font-medium text-foreground">{fmtNum(farmStats.active[t] || 0)}</span>
-                    </div>
-                  ))}
-                </CardContent>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Aktif</CardTitle>
+                  <CheckCircle className="h-4 w-4 text-success" />
+                </CardHeader>
+                <CardContent><div className="font-display text-2xl font-bold text-foreground">{fmtNum(farmStats.totalActive)}</div></CardContent>
               </Card>
-              {/* Pra/Pasca */}
               <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Pra/Pasca ({fmtNum(farmStats.totalPrapasca)})</CardTitle></CardHeader>
-                <CardContent className="space-y-1">
-                  {FARM_TYPES.map(t => (
-                    <div key={t} className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">{FARM_TYPE_LABELS[t]}</span>
-                      <span className="font-medium text-foreground">{fmtNum(farmStats.prapasca[t] || 0)}</span>
-                    </div>
-                  ))}
-                </CardContent>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Pra/Pasca</CardTitle>
+                  <AlertCircle className="h-4 w-4 text-warning" />
+                </CardHeader>
+                <CardContent><div className="font-display text-2xl font-bold text-foreground">{fmtNum(farmStats.totalPrapasca)}</div></CardContent>
               </Card>
-              {/* Inactive */}
               <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Tidak Aktif ({fmtNum(farmStats.totalInactive)})</CardTitle></CardHeader>
-                <CardContent className="space-y-1">
-                  {FARM_TYPES.map(t => (
-                    <div key={t} className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">{FARM_TYPE_LABELS[t]}</span>
-                      <span className="font-medium text-foreground">{fmtNum(farmStats.inactive[t] || 0)}</span>
-                    </div>
-                  ))}
-                </CardContent>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Tidak Aktif</CardTitle>
+                  <AlertCircle className="h-4 w-4 text-destructive" />
+                </CardHeader>
+                <CardContent><div className="font-display text-2xl font-bold text-foreground">{fmtNum(farmStats.totalInactive)}</div></CardContent>
               </Card>
-              {/* Capacity & Population */}
               <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Kapasitas & Populasi</CardTitle></CardHeader>
-                <CardContent className="space-y-2">
-                  <div>
-                    <p className="text-xs font-medium text-foreground mb-1">Kapasitas: {fmtNum(capacityStats.total)}</p>
-                    {FARM_TYPES.map(t => (
-                      <div key={t} className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">{FARM_TYPE_LABELS[t]}</span>
-                        <span>{fmtNum(capacityStats.byType[t] || 0)}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="border-t pt-2">
-                    <p className="text-xs font-medium text-foreground mb-1">Populasi: {fmtNum(populationStats.total)}</p>
-                    {FARM_TYPES.map(t => (
-                      <div key={t} className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">{FARM_TYPE_LABELS[t]}</span>
-                        <span>{fmtNum(populationStats.byType[t] || 0)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Kapasitas</CardTitle>
+                  <Warehouse className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent><div className="font-display text-2xl font-bold text-foreground">{fmtNum(capacityStats.total)}</div></CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Populasi</CardTitle>
+                  <ClipboardList className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent><div className="font-display text-2xl font-bold text-foreground">{fmtNum(populationStats.total)}</div></CardContent>
               </Card>
             </div>
+
+            {/* Detail table */}
+            <Card>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        <th className="px-4 py-3 text-left font-medium text-muted-foreground">Jenis Ternak</th>
+                        <th className="px-4 py-3 text-right font-medium text-muted-foreground">Aktif</th>
+                        <th className="px-4 py-3 text-right font-medium text-muted-foreground">Pra/Pasca</th>
+                        <th className="px-4 py-3 text-right font-medium text-muted-foreground">Tidak Aktif</th>
+                        <th className="px-4 py-3 text-right font-medium text-muted-foreground">Kapasitas</th>
+                        <th className="px-4 py-3 text-right font-medium text-muted-foreground">Populasi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {FARM_TYPES.map((t, i) => (
+                        <tr key={t} className={i < FARM_TYPES.length - 1 ? 'border-b' : ''}>
+                          <td className="px-4 py-2.5 font-medium text-foreground">{FARM_TYPE_LABELS[t]}</td>
+                          <td className="px-4 py-2.5 text-right text-foreground">{fmtNum(farmStats.active[t] || 0)}</td>
+                          <td className="px-4 py-2.5 text-right text-foreground">{fmtNum(farmStats.prapasca[t] || 0)}</td>
+                          <td className="px-4 py-2.5 text-right text-foreground">{fmtNum(farmStats.inactive[t] || 0)}</td>
+                          <td className="px-4 py-2.5 text-right text-foreground">{fmtNum(capacityStats.byType[t] || 0)}</td>
+                          <td className="px-4 py-2.5 text-right text-foreground">{fmtNum(populationStats.byType[t] || 0)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Status Input Hari Ini */}
