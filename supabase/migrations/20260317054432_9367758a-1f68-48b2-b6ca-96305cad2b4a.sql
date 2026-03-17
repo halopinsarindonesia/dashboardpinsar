@@ -1,0 +1,1 @@
+ALTER TABLE public.farms ADD COLUMN kapasitas_kandang integer NOT NULL DEFAULT 0;
