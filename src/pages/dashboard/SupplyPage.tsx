@@ -44,7 +44,7 @@ export default function SupplyPage() {
 
   const selectedFarm = useMemo(() => farms.find(f => f.id === selectedFarmId), [farms, selectedFarmId]);
   // Egg types: layer and puyuh produce eggs
-  const isEggType = selectedFarm && ['layer', 'puyuh'].includes(selectedFarm.farm_type);
+  const isEggType = selectedFarm && ['layer', 'other_egg'].includes(selectedFarm.farm_type);
 
   useEffect(() => { loadData(); }, [user, profile]);
 
