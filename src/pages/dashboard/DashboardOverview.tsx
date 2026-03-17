@@ -70,6 +70,7 @@ export default function DashboardOverview() {
   const [usersByFarmType, setUsersByFarmType] = useState<Record<string, { active: number; inactive: number }>>({});
   const [peternakOpen, setPeternakOpen] = useState(false);
   const [peternakanOpen, setPeternakanOpen] = useState(false);
+  const [kapPopOpen, setKapPopOpen] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
