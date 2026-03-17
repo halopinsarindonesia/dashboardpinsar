@@ -299,15 +299,15 @@ export default function ExportPage() {
       <div className="grid gap-4 sm:grid-cols-2">
         {categories.map(cat => (
           <Card key={cat.key} className="cursor-pointer transition-shadow hover:shadow-md" onClick={() => openDialog(cat.key)}>
-            <CardHeader className="flex flex-row items-center gap-3 pb-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <cat.icon className="h-5 w-5 text-primary" />
+            <CardContent className="flex items-center gap-4 p-5">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                <cat.icon className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <CardTitle className="text-base">{cat.label}</CardTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">{cat.desc}</p>
+                <h3 className="text-sm font-semibold text-foreground">{cat.label}</h3>
+                <p className="text-xs text-muted-foreground mt-1">{cat.desc}</p>
               </div>
-            </CardHeader>
+            </CardContent>
           </Card>
         ))}
       </div>
