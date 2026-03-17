@@ -281,7 +281,7 @@ export default function ExportPage() {
 
   const categories = [
     { key: 'users' as ExportCategory, label: 'Data Pengguna & Peternakan', desc: 'Ekspor semua data pengguna beserta peternakan mereka', icon: Users, noTimeframe: true },
-    { key: 'panen' as ExportCategory, label: 'Data Panen', desc: 'Ekspor data panen berdasarkan periode waktu', icon: FileSpreadsheet, noTimeframe: false },
+    { key: 'produksi' as ExportCategory, label: 'Data Produksi', desc: 'Ekspor data produksi berdasarkan periode waktu', icon: FileSpreadsheet, noTimeframe: false },
     { key: 'harga' as ExportCategory, label: 'Harga Per Daerah', desc: 'Ekspor rata-rata harga per wilayah', icon: DollarSign, noTimeframe: false },
     { key: 'audit' as ExportCategory, label: 'Audit Log', desc: 'Ekspor log aktivitas sistem', icon: ClipboardList, noTimeframe: false },
   ];
