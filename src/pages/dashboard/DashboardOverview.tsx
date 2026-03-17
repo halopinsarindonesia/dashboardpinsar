@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Warehouse, Users, AlertCircle, CheckCircle, ClipboardList, Loader2 } from 'lucide-react';
+import { Warehouse, Users, AlertCircle, CheckCircle, ClipboardList, Loader2, ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useIndonesiaRegions } from '@/hooks/use-indonesia-regions';
@@ -66,6 +67,8 @@ export default function DashboardOverview() {
   const [populationStats, setPopulationStats] = useState<{ total: number; byType: Record<string, number> }>({ total: 0, byType: {} });
   const [submittedToday, setSubmittedToday] = useState(0);
   const [totalActiveFarms, setTotalActiveFarms] = useState(0);
+  const [usersByFarmType, setUsersByFarmType] = useState<Record<string, { active: number; inactive: number }>>({});
+  const [peternakOpen, setPeternakOpen] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -75,15 +78,17 @@ export default function DashboardOverview() {
     await supabase.rpc('auto_inactivate_farms' as any);
 
     // Users count (all roles except superadmin are peternak)
-    const [usersRes, farmsRes, todayRes] = await Promise.all([
+    const [usersRes, farmsRes, todayRes, membersRes] = await Promise.all([
       supabase.from('profiles').select('id, status, role').neq('role', 'superadmin' as any),
-      supabase.from('farms').select('id, farm_type, status, kapasitas_kandang, broiler_initial_population, province, city'),
+      supabase.from('farms').select('id, farm_type, status, kapasitas_kandang, broiler_initial_population, province, city, owner_id'),
       supabase.from('supply_records').select('farm_id').eq('record_date', today),
+      supabase.from('farm_members').select('user_id, farm_id'),
     ]);
 
     const allUsers = usersRes.data ?? [];
     const approvedUsers = allUsers.filter(u => u.status === 'approved');
     const pendingOrRejected = allUsers.filter(u => u.status !== 'approved');
+    const approvedSet = new Set(approvedUsers.map(u => u.id));
 
     setTotalUsers(allUsers.length);
     setActiveUsers(approvedUsers.length);
@@ -162,6 +167,26 @@ export default function DashboardOverview() {
     setSubmittedToday(todayFarms.size);
     setTotalActiveFarms(totalActive);
 
+    // Count unique users per farm type
+    const farmById = new Map(allFarms.map((f: any) => [f.id, f]));
+    const members = membersRes.data ?? [];
+    const uByType: Record<string, { activeSet: Set<string>; inactiveSet: Set<string> }> = {};
+    FARM_TYPES.forEach(t => { uByType[t] = { activeSet: new Set(), inactiveSet: new Set() }; });
+    members.forEach((m: any) => {
+      const farm = farmById.get(m.farm_id);
+      if (!farm) return;
+      const ft = farm.farm_type;
+      if (!uByType[ft]) uByType[ft] = { activeSet: new Set(), inactiveSet: new Set() };
+      if (approvedSet.has(m.user_id)) {
+        uByType[ft].activeSet.add(m.user_id);
+      } else {
+        uByType[ft].inactiveSet.add(m.user_id);
+      }
+    });
+    const uByTypeResult: Record<string, { active: number; inactive: number }> = {};
+    FARM_TYPES.forEach(t => { uByTypeResult[t] = { active: uByType[t].activeSet.size, inactive: uByType[t].inactiveSet.size }; });
+    setUsersByFarmType(uByTypeResult);
+
     setLoading(false);
   }, [filter, customStart, customEnd, provinceFilter, cityFilter]);
 
@@ -230,26 +255,64 @@ export default function DashboardOverview() {
               </div>
             </CardHeader>
             <CardContent className="space-y-0 pt-0">
-              <div className="divide-y divide-border">
-                <div className="flex items-center justify-between py-3">
-                  <span className="text-sm text-muted-foreground">Total Peternak</span>
-                  <span className="font-display text-lg font-bold text-foreground">{fmtNum(totalUsers)}</span>
-                </div>
-                <div className="flex items-center justify-between py-3">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-success" />
-                    <span className="text-sm text-muted-foreground">Aktif (Approved)</span>
+              <Collapsible open={peternakOpen} onOpenChange={setPeternakOpen}>
+                <div className="divide-y divide-border">
+                  <div className="flex items-center justify-between py-3">
+                    <span className="text-sm text-muted-foreground">Total Peternak</span>
+                    <span className="font-display text-lg font-bold text-foreground">{fmtNum(totalUsers)}</span>
                   </div>
-                  <span className="font-display text-lg font-bold text-foreground">{fmtNum(activeUsers)}</span>
-                </div>
-                <div className="flex items-center justify-between py-3">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-destructive" />
-                    <span className="text-sm text-muted-foreground">Tidak Aktif</span>
+                  <div className="flex items-center justify-between py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-success" />
+                      <span className="text-sm text-muted-foreground">Aktif (Approved)</span>
+                    </div>
+                    <span className="font-display text-lg font-bold text-foreground">{fmtNum(activeUsers)}</span>
                   </div>
-                  <span className="font-display text-lg font-bold text-foreground">{fmtNum(inactiveUsers)}</span>
+                  <div className="flex items-center justify-between py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-destructive" />
+                      <span className="text-sm text-muted-foreground">Tidak Aktif</span>
+                    </div>
+                    <span className="font-display text-lg font-bold text-foreground">{fmtNum(inactiveUsers)}</span>
+                  </div>
                 </div>
-              </div>
+                <CollapsibleTrigger className="flex w-full items-center justify-center gap-1 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors border-t border-border mt-1">
+                  <span>{peternakOpen ? 'Sembunyikan' : 'Lihat'} per tipe produk</span>
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${peternakOpen ? 'rotate-180' : ''}`} />
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="space-y-2 pt-2">
+                    {FARM_TYPES.map(t => {
+                      const u = usersByFarmType[t];
+                      if (!u || (u.active === 0 && u.inactive === 0)) return null;
+                      return (
+                        <div key={t} className="rounded-lg bg-muted/50 p-3">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-xs font-semibold text-foreground">{FARM_TYPE_LABELS[t]}</span>
+                            <span className="text-xs text-muted-foreground">{fmtNum(u.active + u.inactive)} peternak</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5">
+                                <span className="h-1.5 w-1.5 rounded-full bg-success" />
+                                <span className="text-xs text-muted-foreground">Aktif</span>
+                              </div>
+                              <span className="text-xs font-medium text-foreground">{fmtNum(u.active)}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5">
+                                <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
+                                <span className="text-xs text-muted-foreground">Tidak Aktif</span>
+                              </div>
+                              <span className="text-xs font-medium text-foreground">{fmtNum(u.inactive)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             </CardContent>
           </Card>
 
