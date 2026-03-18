@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,7 +45,10 @@ function BannerTab() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">Kelola banner halaman utama</p>
+        <div>
+          <p className="text-sm text-muted-foreground">Kelola banner halaman utama (1 banner aktif ditampilkan)</p>
+          <p className="text-xs text-muted-foreground mt-1">Ukuran ideal: <strong>1920×600 px</strong> (rasio 16:5, landscape)</p>
+        </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild><Button size="sm"><Plus className="mr-2 h-4 w-4" />Tambah Banner</Button></DialogTrigger>
           <DialogContent>
@@ -54,6 +57,7 @@ function BannerTab() {
               <div><Label>Judul</Label><Input value={title} onChange={e => setTitle(e.target.value)} /></div>
               <div><Label>URL Gambar</Label><Input value={imageUrl} onChange={e => setImageUrl(e.target.value)} required placeholder="https://..." /></div>
               <div><Label>URL Link (opsional)</Label><Input value={linkUrl} onChange={e => setLinkUrl(e.target.value)} /></div>
+              <p className="text-xs text-muted-foreground">Ukuran ideal: 1920×600 px (rasio 16:5). Gambar akan ditampilkan sebagai background banner di halaman Beranda.</p>
               <Button type="submit" className="w-full" disabled={submitting}>{submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Simpan'}</Button>
             </form>
           </DialogContent>
@@ -209,19 +213,13 @@ function BlogTab() {
   function resetForm() { setTitle(''); setContent(''); setBlogType('news'); setStatus('active'); setBannerUrl(''); setEditingBlog(null); }
 
   function openEdit(b: any) {
-    setEditingBlog(b);
-    setTitle(b.title);
-    setContent(b.content || '');
-    setBlogType(b.blog_type);
-    setStatus(b.status);
-    setBannerUrl(b.images?.[0] || '');
-    setDialogOpen(true);
+    setEditingBlog(b); setTitle(b.title); setContent(b.content || '');
+    setBlogType(b.blog_type); setStatus(b.status); setBannerUrl(b.images?.[0] || ''); setDialogOpen(true);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault(); setSubmitting(true);
     const images = bannerUrl ? [bannerUrl] : null;
-
     if (editingBlog) {
       const { error } = await supabase.from('cms_blogs').update({ title, content, blog_type: blogType, status, images }).eq('id', editingBlog.id);
       if (error) toast({ title: 'Gagal', description: error.message, variant: 'destructive' });
@@ -362,17 +360,21 @@ function PartnersTab() {
 
 // ─── Main CMS Page ──────────────────────
 export default function CMSPage() {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   return (
     <div className="space-y-6">
       <div><h1 className="font-display text-2xl font-bold text-foreground">CMS</h1><p className="text-sm text-muted-foreground">Kelola konten landing page</p></div>
       <Tabs defaultValue="banner">
-        <TabsList className="flex-wrap">
-          <TabsTrigger value="banner"><Image className="mr-1.5 h-4 w-4" />Banner</TabsTrigger>
-          <TabsTrigger value="about"><FileText className="mr-1.5 h-4 w-4" />Tentang Kami</TabsTrigger>
-          <TabsTrigger value="contact"><Phone className="mr-1.5 h-4 w-4" />Kontak</TabsTrigger>
-          <TabsTrigger value="blog"><Globe className="mr-1.5 h-4 w-4" />Blog</TabsTrigger>
-          <TabsTrigger value="partners"><Handshake className="mr-1.5 h-4 w-4" />Anggota</TabsTrigger>
-        </TabsList>
+        <div ref={scrollRef} className="overflow-x-auto -mx-6 px-6 pb-1">
+          <TabsList className="inline-flex w-auto min-w-max">
+            <TabsTrigger value="banner"><Image className="mr-1.5 h-4 w-4" />Banner</TabsTrigger>
+            <TabsTrigger value="about"><FileText className="mr-1.5 h-4 w-4" />Tentang Kami</TabsTrigger>
+            <TabsTrigger value="contact"><Phone className="mr-1.5 h-4 w-4" />Kontak</TabsTrigger>
+            <TabsTrigger value="blog"><Globe className="mr-1.5 h-4 w-4" />Blog</TabsTrigger>
+            <TabsTrigger value="partners"><Handshake className="mr-1.5 h-4 w-4" />Anggota</TabsTrigger>
+          </TabsList>
+        </div>
         <TabsContent value="banner"><BannerTab /></TabsContent>
         <TabsContent value="about"><AboutTab /></TabsContent>
         <TabsContent value="contact"><ContactTab /></TabsContent>

@@ -27,6 +27,7 @@ interface Farm {
   farm_type: string; status: string; owner_id?: string | null;
   broiler_initial_population?: number; layer_initial_population?: number;
   kapasitas_kandang?: number;
+  created_at?: string;
 }
 interface UserOption { id: string; full_name: string; }
 
@@ -41,6 +42,7 @@ export default function FarmsPage() {
   const [editFarm, setEditFarm] = useState<Farm | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Farm | null>(null);
+  const [currentPopulations, setCurrentPopulations] = useState<Record<string, number>>({});
 
   const [ownerId, setOwnerId] = useState('');
   const [name, setName] = useState('');
@@ -66,18 +68,42 @@ export default function FarmsPage() {
       setUserList((users as UserOption[]) ?? []);
     }
 
+    let farmData: Farm[] = [];
     if (isSuperadmin) {
       const { data } = await supabase.from('farms').select('*').order('created_at', { ascending: false });
-      setFarms((data as unknown as Farm[]) ?? []);
+      farmData = (data as unknown as Farm[]) ?? [];
     } else if (user) {
       const { data: memberFarms } = await supabase.from('farm_members').select('farm_id').eq('user_id', user.id);
       const farmIds = memberFarms?.map((m: any) => m.farm_id) ?? [];
       if (farmIds.length > 0) {
         const { data } = await supabase.from('farms').select('*').in('id', farmIds).order('created_at', { ascending: false });
-        setFarms((data as unknown as Farm[]) ?? []);
-      } else {
-        setFarms([]);
+        farmData = (data as unknown as Farm[]) ?? [];
       }
+    }
+    setFarms(farmData);
+
+    // Calculate current populations
+    const farmIds = farmData.map(f => f.id);
+    if (farmIds.length > 0) {
+      const { data: supplyData } = await supabase.from('supply_records')
+        .select('farm_id, broiler_input, broiler_sold, broiler_death')
+        .in('farm_id', farmIds);
+
+      const supplyByFarm: Record<string, { input: number; sold: number; death: number }> = {};
+      (supplyData ?? []).forEach((s: any) => {
+        if (!supplyByFarm[s.farm_id]) supplyByFarm[s.farm_id] = { input: 0, sold: 0, death: 0 };
+        supplyByFarm[s.farm_id].input += s.broiler_input ?? 0;
+        supplyByFarm[s.farm_id].sold += s.broiler_sold ?? 0;
+        supplyByFarm[s.farm_id].death += s.broiler_death ?? 0;
+      });
+
+      const pops: Record<string, number> = {};
+      farmData.forEach(f => {
+        const initial = f.broiler_initial_population ?? 0;
+        const supply = supplyByFarm[f.id] || { input: 0, sold: 0, death: 0 };
+        pops[f.id] = Math.max(0, initial + supply.input - supply.sold - supply.death);
+      });
+      setCurrentPopulations(pops);
     }
     setLoading(false);
   }
@@ -101,7 +127,6 @@ export default function FarmsPage() {
     setEditFarm(farm);
     setOwnerId(farm.owner_id || '');
     setName(farm.name);
-    // For edit, show stored names as text (since we store names not IDs)
     setProvinceName(farm.province);
     setCityName(farm.city || '');
     setDistrictName(farm.district || '');
@@ -128,35 +153,28 @@ export default function FarmsPage() {
 
   function handleProvinceChange(id: string) {
     const prov = regions.provinces.find(p => p.id === id);
-    setProvinceId(id);
-    setProvinceName(prov?.name || '');
-    setCityId(''); setCityName('');
-    setDistrictId(''); setDistrictName('');
-    setVillageId(''); setVillageName('');
+    setProvinceId(id); setProvinceName(prov?.name || '');
+    setCityId(''); setCityName(''); setDistrictId(''); setDistrictName(''); setVillageId(''); setVillageName('');
     regions.fetchCities(id);
   }
 
   function handleCityChange(id: string) {
     const c = regions.cities.find(c => c.id === id);
-    setCityId(id);
-    setCityName(c?.name || '');
-    setDistrictId(''); setDistrictName('');
-    setVillageId(''); setVillageName('');
+    setCityId(id); setCityName(c?.name || '');
+    setDistrictId(''); setDistrictName(''); setVillageId(''); setVillageName('');
     regions.fetchDistricts(id);
   }
 
   function handleDistrictChange(id: string) {
     const d = regions.districts.find(d => d.id === id);
-    setDistrictId(id);
-    setDistrictName(d?.name || '');
+    setDistrictId(id); setDistrictName(d?.name || '');
     setVillageId(''); setVillageName('');
     regions.fetchVillages(id);
   }
 
   function handleVillageChange(id: string) {
     const v = regions.villages.find(v => v.id === id);
-    setVillageId(id);
-    setVillageName(v?.name || '');
+    setVillageId(id); setVillageName(v?.name || '');
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -173,7 +191,6 @@ export default function FarmsPage() {
 
     const numKapasitas = Number(kapasitas) || 0;
     const numInitialPop = Number(initialPop) || 0;
-
 
     const payload: any = {
       name, province: provinceName, city: cityName || null, district: districtName || null, kelurahan: villageName || null,
@@ -210,7 +227,7 @@ export default function FarmsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground">Peternakan</h1>
           <p className="text-sm text-muted-foreground">Kelola data peternakan</p>
@@ -224,7 +241,6 @@ export default function FarmsPage() {
               <DialogTitle className="font-display">{isEditing ? 'Edit Peternakan' : 'Tambah Peternakan Baru'}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Owner selector */}
               <div>
                 <Label>Pemilik</Label>
                 {isSuperadmin ? (
@@ -246,7 +262,6 @@ export default function FarmsPage() {
                 <Input value={name} onChange={e => setName(e.target.value)} required placeholder="Peternakan Sejahtera" />
               </div>
 
-              {/* Location - Cascading Dropdowns */}
               {isEditing ? (
                 <>
                   <div className="grid grid-cols-2 gap-3">
@@ -265,18 +280,14 @@ export default function FarmsPage() {
                       <Label>Provinsi</Label>
                       <Select value={provinceId} onValueChange={handleProvinceChange}>
                         <SelectTrigger><SelectValue placeholder={regions.loadingProvinces ? 'Memuat...' : 'Pilih Provinsi'} /></SelectTrigger>
-                        <SelectContent>
-                          {regions.provinces.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                        </SelectContent>
+                        <SelectContent>{regions.provinces.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                     <div>
                       <Label>Kota/Kabupaten</Label>
                       <Select value={cityId} onValueChange={handleCityChange} disabled={!provinceId}>
                         <SelectTrigger><SelectValue placeholder={regions.loadingCities ? 'Memuat...' : 'Pilih Kota'} /></SelectTrigger>
-                        <SelectContent>
-                          {regions.cities.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                        </SelectContent>
+                        <SelectContent>{regions.cities.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                   </div>
@@ -285,18 +296,14 @@ export default function FarmsPage() {
                       <Label>Kecamatan</Label>
                       <Select value={districtId} onValueChange={handleDistrictChange} disabled={!cityId}>
                         <SelectTrigger><SelectValue placeholder={regions.loadingDistricts ? 'Memuat...' : 'Pilih Kecamatan'} /></SelectTrigger>
-                        <SelectContent>
-                          {regions.districts.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
-                        </SelectContent>
+                        <SelectContent>{regions.districts.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                     <div>
                       <Label>Kelurahan</Label>
                       <Select value={villageId} onValueChange={handleVillageChange} disabled={!districtId}>
                         <SelectTrigger><SelectValue placeholder={regions.loadingVillages ? 'Memuat...' : 'Pilih Kelurahan'} /></SelectTrigger>
-                        <SelectContent>
-                          {regions.villages.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
-                        </SelectContent>
+                        <SelectContent>{regions.villages.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                   </div>
@@ -339,7 +346,6 @@ export default function FarmsPage() {
         </Dialog>
       </div>
 
-      {/* Delete confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -367,33 +373,39 @@ export default function FarmsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Kode</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Nama</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Lokasi</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Tipe</th>
-                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">Kapasitas</th>
-                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">Populasi Awal</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Aksi</th>
+                    <th className="px-3 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Kode</th>
+                    <th className="px-3 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Nama</th>
+                    <th className="px-3 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Lokasi</th>
+                    <th className="px-3 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Tipe</th>
+                    <th className="px-3 py-3 text-right font-medium text-muted-foreground whitespace-nowrap">Kapasitas</th>
+                    <th className="px-3 py-3 text-right font-medium text-muted-foreground whitespace-nowrap">Pop. Awal</th>
+                    <th className="px-3 py-3 text-right font-medium text-muted-foreground whitespace-nowrap">Pop. Sekarang</th>
+                    <th className="px-3 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Status</th>
+                    <th className="px-3 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Tgl. Registrasi</th>
+                    <th className="px-3 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
                   {farms.map((farm) => (
                     <tr key={farm.id} className="border-b last:border-0">
-                      <td className="px-4 py-3 font-mono text-xs">{farm.farm_code}</td>
-                      <td className="px-4 py-3 font-medium text-foreground">{farm.name}</td>
-                      <td className="px-4 py-3 text-muted-foreground text-xs">
-                        {[farm.province, farm.city, farm.district, farm.kelurahan].filter(Boolean).join(', ')}
+                      <td className="px-3 py-3 font-mono text-xs whitespace-nowrap">{farm.farm_code}</td>
+                      <td className="px-3 py-3 font-medium text-foreground whitespace-nowrap">{farm.name}</td>
+                      <td className="px-3 py-3 text-muted-foreground text-xs max-w-[200px] truncate">
+                        {[farm.province, farm.city].filter(Boolean).join(', ')}
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground">{FARM_TYPE_LABELS[farm.farm_type] || farm.farm_type}</td>
-                      <td className="px-4 py-3 text-right text-foreground">{(farm.kapasitas_kandang ?? 0).toLocaleString('id-ID')}</td>
-                      <td className="px-4 py-3 text-right text-foreground">{(farm.broiler_initial_population ?? 0).toLocaleString('id-ID')}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">{FARM_TYPE_LABELS[farm.farm_type] || farm.farm_type}</td>
+                      <td className="px-3 py-3 text-right text-foreground whitespace-nowrap">{(farm.kapasitas_kandang ?? 0).toLocaleString('id-ID')}</td>
+                      <td className="px-3 py-3 text-right text-foreground whitespace-nowrap">{(farm.broiler_initial_population ?? 0).toLocaleString('id-ID')}</td>
+                      <td className="px-3 py-3 text-right font-semibold text-foreground whitespace-nowrap">{(currentPopulations[farm.id] ?? 0).toLocaleString('id-ID')}</td>
+                      <td className="px-3 py-3 whitespace-nowrap">
                         <span className={farm.status === 'active' ? 'status-badge-submitted' : farm.status === 'prapasca' ? 'status-badge-pending' : 'status-badge-not-submitted'}>
                           {STATUS_LABELS[farm.status] || farm.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-3 text-muted-foreground text-xs whitespace-nowrap">
+                        {farm.created_at ? new Date(farm.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap">
                         <div className="flex gap-1">
                           <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(farm)}>
                             <Pencil className="h-4 w-4" />

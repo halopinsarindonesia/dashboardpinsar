@@ -89,12 +89,11 @@ export default function MapPage() {
     })();
   }, []);
 
-  // Initialize map after data loads
   useEffect(() => {
     if (loading || !containerRef.current) return;
     if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
 
-    const map = L.map(containerRef.current).setView([-2.5, 118], 5);
+    const map = L.map(containerRef.current, { zIndex: 1 }).setView([-2.5, 118], 5);
     mapRef.current = map;
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -143,7 +142,7 @@ export default function MapPage() {
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div ref={containerRef} className="h-[600px] rounded-xl border border-border overflow-hidden" />
+        <div ref={containerRef} className="h-[600px] rounded-xl border border-border overflow-hidden relative" style={{ zIndex: 1 }} />
       )}
     </div>
   );

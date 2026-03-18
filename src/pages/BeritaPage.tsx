@@ -43,11 +43,11 @@ export default function BeritaPage() {
       ) : blogs.length === 0 ? (
         <p className="text-muted-foreground py-8 text-center">Belum ada artikel.</p>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {blogs.map(item => (
             <Link key={item.id} to={`/berita/${item.id}`} className="group">
-              <article className="stat-card h-full flex flex-col">
-                <div className="mb-3 h-40 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
+              <article className="rounded-xl border bg-card shadow-sm hover:shadow-md transition-shadow h-full flex flex-col overflow-hidden">
+                <div className="h-40 bg-muted flex items-center justify-center overflow-hidden">
                   {item.images && item.images[0] ? (
                     <img src={item.images[0]} alt={item.title} className="h-full w-full object-cover" />
                   ) : item.blog_type === 'news' ? (
@@ -56,14 +56,16 @@ export default function BeritaPage() {
                     <Warehouse className="h-10 w-10 text-accent/30" />
                   )}
                 </div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge variant={item.blog_type === 'news' ? 'default' : 'secondary'}>
-                    {item.blog_type === 'news' ? 'Berita' : 'Kegiatan'}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">{formatDate(item.publish_date || item.created_at)}</span>
+                <div className="p-4 flex flex-col flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant={item.blog_type === 'news' ? 'default' : 'secondary'}>
+                      {item.blog_type === 'news' ? 'Berita' : 'Kegiatan'}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">{formatDate(item.publish_date || item.created_at)}</span>
+                  </div>
+                  <h3 className="font-display text-base font-semibold text-foreground group-hover:text-primary transition-colors">{item.title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground line-clamp-3 flex-1">{item.content}</p>
                 </div>
-                <h3 className="font-display text-base font-semibold text-foreground group-hover:text-primary transition-colors">{item.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground line-clamp-3 flex-1">{item.content}</p>
               </article>
             </Link>
           ))}
