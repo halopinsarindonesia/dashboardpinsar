@@ -59,13 +59,13 @@ export default function SupplyPage() {
     let farmsData: Farm[] = [];
 
     if (isSuperadmin) {
-      const { data } = await supabase.from('farms').select('*').eq('status', 'active');
+      const { data } = await supabase.from('farms').select('*');
       farmsData = (data as unknown as Farm[]) ?? [];
     } else {
       const { data: memberData } = await supabase.from('farm_members').select('farm_id').eq('user_id', user.id);
       const farmIds = memberData?.map((m: any) => m.farm_id) ?? [];
       if (farmIds.length > 0) {
-        const { data } = await supabase.from('farms').select('*').in('id', farmIds).eq('status', 'active');
+        const { data } = await supabase.from('farms').select('*').in('id', farmIds);
         farmsData = (data as unknown as Farm[]) ?? [];
       }
     }
