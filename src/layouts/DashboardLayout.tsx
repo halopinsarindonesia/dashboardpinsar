@@ -29,7 +29,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, allRoles: true },
   { label: 'Peternakan', href: '/dashboard/farms', icon: Warehouse, allRoles: true },
-  { label: 'Input Produksi', href: '/dashboard/supply', icon: ClipboardList, allRoles: true },
+  { label: 'Produksi', href: '/dashboard/supply', icon: ClipboardList, allRoles: true },
   { label: 'Peta Peternakan', href: '/dashboard/map', icon: Map, allRoles: true },
   { label: 'Pengguna', href: '/dashboard/users', icon: Users, superadminOnly: true },
   { label: 'CMS', href: '/dashboard/cms', icon: FileText, superadminOnly: true },

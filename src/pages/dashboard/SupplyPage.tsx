@@ -59,13 +59,13 @@ export default function SupplyPage() {
     let farmsData: Farm[] = [];
 
     if (isSuperadmin) {
-      const { data } = await supabase.from('farms').select('*').eq('status', 'active');
+      const { data } = await supabase.from('farms').select('*');
       farmsData = (data as unknown as Farm[]) ?? [];
     } else {
       const { data: memberData } = await supabase.from('farm_members').select('farm_id').eq('user_id', user.id);
       const farmIds = memberData?.map((m: any) => m.farm_id) ?? [];
       if (farmIds.length > 0) {
-        const { data } = await supabase.from('farms').select('*').in('id', farmIds).eq('status', 'active');
+        const { data } = await supabase.from('farms').select('*').in('id', farmIds);
         farmsData = (data as unknown as Farm[]) ?? [];
       }
     }
@@ -76,9 +76,10 @@ export default function SupplyPage() {
       .order('record_date', { ascending: false }).limit(50);
 
     if (!isSuperadmin) {
-      const farmIds = farmsData.map(f => f.id);
-      if (farmIds.length > 0) {
-        recordsQuery = recordsQuery.in('farm_id', farmIds);
+      const { data: memberData } = await supabase.from('farm_members').select('farm_id').eq('user_id', user.id);
+      const memberFarmIds = memberData?.map((m: any) => m.farm_id) ?? [];
+      if (memberFarmIds.length > 0) {
+        recordsQuery = recordsQuery.in('farm_id', memberFarmIds);
       } else {
         setRecords([]);
         setLoading(false);
@@ -392,7 +393,7 @@ export default function SupplyPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold text-foreground">Input Produksi</h1>
+          <h1 className="font-display text-2xl font-bold text-foreground">Produksi</h1>
           <p className="text-sm text-muted-foreground">Catat data produksi peternakan</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
