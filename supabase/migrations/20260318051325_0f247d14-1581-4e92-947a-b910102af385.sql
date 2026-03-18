@@ -1,0 +1,1 @@
+ALTER TYPE public.farm_status ADD VALUE IF NOT EXISTS 'prapasca';

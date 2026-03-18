@@ -513,7 +513,7 @@ export type Database = {
     Enums: {
       app_role: "dpp" | "dpw" | "peternak" | "superadmin"
       audit_action: "create" | "edit" | "delete"
-      farm_status: "active" | "renovation" | "inactive"
+      farm_status: "active" | "renovation" | "inactive" | "prapasca"
       farm_type:
         | "broiler"
         | "layer"
@@ -651,7 +651,7 @@ export const Constants = {
     Enums: {
       app_role: ["dpp", "dpw", "peternak", "superadmin"],
       audit_action: ["create", "edit", "delete"],
-      farm_status: ["active", "renovation", "inactive"],
+      farm_status: ["active", "renovation", "inactive", "prapasca"],
       farm_type: [
         "broiler",
         "layer",
