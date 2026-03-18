@@ -328,8 +328,7 @@ export default function FarmsPage() {
               </div>
               <div>
                 <Label>Populasi Awal</Label>
-                <Input type="number" min="0" max={kapasitas} value={initialPop} onChange={e => setInitialPop(e.target.value)} required />
-                <p className="text-xs text-muted-foreground mt-1">Tidak boleh melebihi kapasitas kandang</p>
+                <Input type="number" min="0" value={initialPop} onChange={e => setInitialPop(e.target.value)} required />
               </div>
 
               <Button type="submit" className="w-full" disabled={submitting}>

@@ -154,11 +154,6 @@ export default function SupplyPage() {
       setSubmitting(false); return;
     }
 
-    // Validation: cannot exceed capacity
-    if (masuk > kapasitas) {
-      toast({ title: 'Validasi gagal', description: 'Jumlah ayam masuk melebihi kapasitas kandang, harap tambah data kapasitas kandang dalam database peternakan atau kurangi jumlah ayam masuk', variant: 'destructive' });
-      setSubmitting(false); return;
-    }
 
     const newPop = currentPop + masuk;
     const payload: any = {
