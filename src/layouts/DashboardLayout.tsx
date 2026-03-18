@@ -1,29 +1,16 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
-  LayoutDashboard,
-  Warehouse,
-  ClipboardList,
-  Users,
-  FileText,
-  LogOut,
-  Map,
-  ScrollText,
-  Download,
-  Menu,
-  X,
-  UserCircle,
+  LayoutDashboard, Warehouse, ClipboardList, Users, FileText,
+  LogOut, Map, ScrollText, Download, Menu, X, UserCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import logo from '@/assets/logopinsar.jpg';
 
 interface NavItem {
-  label: string;
-  href: string;
-  icon: React.ElementType;
-  superadminOnly?: boolean;
-  allRoles?: boolean;
+  label: string; href: string; icon: React.ElementType;
+  superadminOnly?: boolean; allRoles?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -46,25 +33,18 @@ export default function DashboardLayout() {
   const userRole = profile?.role ?? 'peternak';
 
   const ROLE_LABELS: Record<string, string> = {
-    superadmin: 'Superadmin',
-    dpp: 'DPP',
-    dpw: 'DPW',
-    peternak: 'Anggota',
+    superadmin: 'Superadmin', dpp: 'DPP', dpw: 'DPW', peternak: 'Anggota',
   };
 
   const filteredNav = navItems.filter((item) => {
     if (item.superadminOnly) return isSuperadmin;
-    return true; // allRoles items visible to everyone
+    return true;
   });
 
   const roleLabel = ROLE_LABELS[userRole] || userRole;
 
   const handleLogout = async () => {
-    try {
-      await signOut();
-    } catch (e) {
-      // ignore
-    }
+    try { await signOut(); } catch (e) { /* ignore */ }
     navigate('/login', { replace: true });
   };
 
@@ -79,9 +59,7 @@ export default function DashboardLayout() {
               to={item.href}
               onClick={() => setMobileOpen(false)}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                isActive
-                  ? 'nav-item-active'
-                  : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                isActive ? 'nav-item-active' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
               }`}
             >
               <item.icon className="h-4 w-4" />
@@ -97,13 +75,11 @@ export default function DashboardLayout() {
           <p className="text-xs text-sidebar-foreground/60">{roleLabel}</p>
         </div>
         <Button
-          variant="ghost"
-          size="sm"
+          variant="ghost" size="sm"
           className="w-full justify-start text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
           onClick={handleLogout}
         >
-          <LogOut className="mr-2 h-4 w-4" />
-          Keluar
+          <LogOut className="mr-2 h-4 w-4" /> Keluar
         </Button>
       </div>
     </>
@@ -115,20 +91,18 @@ export default function DashboardLayout() {
       <aside className="hidden w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground lg:flex">
         <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6">
           <img src={logo} alt="PINSAR" className="h-8 w-8 object-contain" />
-          <span className="font-display text-lg font-bold text-sidebar-primary">PINSAR</span>
         </div>
         {sidebarContent}
       </aside>
 
-      {/* Mobile overlay */}
+      {/* Mobile overlay - z-index higher than map */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div className="fixed inset-0 z-[999] lg:hidden">
           <div className="absolute inset-0 bg-foreground/50" onClick={() => setMobileOpen(false)} />
-          <aside className="relative flex h-full w-64 flex-col bg-sidebar text-sidebar-foreground">
+          <aside className="relative flex h-full w-64 flex-col bg-sidebar text-sidebar-foreground z-[1000]">
             <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-6">
               <div className="flex items-center gap-2">
                 <img src={logo} alt="PINSAR" className="h-8 w-8 object-contain" />
-                <span className="font-display text-lg font-bold text-sidebar-primary">PINSAR</span>
               </div>
               <button onClick={() => setMobileOpen(false)}><X className="h-5 w-5 text-sidebar-foreground" /></button>
             </div>
@@ -143,12 +117,11 @@ export default function DashboardLayout() {
           <div className="flex items-center gap-2">
             <button onClick={() => setMobileOpen(true)}><Menu className="h-6 w-6 text-foreground" /></button>
             <img src={logo} alt="PINSAR" className="h-7 w-7 object-contain" />
-            <span className="font-display font-bold text-foreground">PINSAR</span>
           </div>
           <span className="text-xs text-muted-foreground">{roleLabel}</span>
         </header>
 
-        <main className="flex-1 overflow-y-auto bg-background p-6">
+        <main className="flex-1 overflow-y-auto bg-background p-4 sm:p-6">
           <Outlet />
         </main>
       </div>

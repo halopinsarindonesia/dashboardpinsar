@@ -37,30 +37,28 @@ const FARM_TYPE_LABELS: Record<string, string> = {
 };
 const FARM_TYPES = Object.keys(FARM_TYPE_LABELS);
 
-// ── Reusable status-row component ──────────────────────────────────
+// ── Mobile-friendly status row ──────────────────────────────────
 interface StatusRowProps {
-  label: string;
-  total: number;
-  byType: Record<string, number>;
-  colorClass: string; // tailwind bg class for the main badge
-  lightClass: string; // tailwind bg class for the type badges
-  borderClass: string;
+  label: string; total: number; byType: Record<string, number>;
+  colorClass: string; lightClass: string; borderClass: string;
 }
 
 function StatusRow({ label, total, byType, colorClass, lightClass, borderClass }: StatusRowProps) {
   const fmtNum = (n: number) => n.toLocaleString('id-ID');
   return (
-    <div className="grid grid-cols-[minmax(120px,1fr)_repeat(6,1fr)] gap-2">
-      <div className={`rounded-lg border-2 ${borderClass} ${colorClass} p-3 flex flex-col justify-center`}>
+    <div className="space-y-2">
+      <div className={`rounded-lg border-2 ${borderClass} ${colorClass} p-3 flex items-center justify-between`}>
         <span className="text-sm font-bold">{label}</span>
         <span className="text-lg font-bold">{fmtNum(total)}</span>
       </div>
-      {FARM_TYPES.map(t => (
-        <div key={t} className={`rounded-lg border ${borderClass} ${lightClass} p-3 flex flex-col justify-center`}>
-          <span className="text-xs font-semibold text-foreground">{FARM_TYPE_LABELS[t]}</span>
-          <span className="text-base font-bold text-foreground">{fmtNum(byType[t] || 0)}</span>
-        </div>
-      ))}
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+        {FARM_TYPES.map(t => (
+          <div key={t} className={`rounded-lg border ${borderClass} ${lightClass} p-2 text-center`}>
+            <span className="text-[10px] font-semibold text-foreground block leading-tight">{FARM_TYPE_LABELS[t]}</span>
+            <span className="text-sm font-bold text-foreground">{fmtNum(byType[t] || 0)}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -76,7 +74,6 @@ export default function DashboardOverview() {
   const [cityFilter, setCityFilter] = useState('all');
   const [loading, setLoading] = useState(true);
 
-  // Stats
   const [totalUsers, setTotalUsers] = useState(0);
   const [activeUsers, setActiveUsers] = useState(0);
   const [inactiveUsers, setInactiveUsers] = useState(0);
@@ -91,7 +88,6 @@ export default function DashboardOverview() {
   const loadData = useCallback(async () => {
     setLoading(true);
     const today = fmt(new Date());
-
     await supabase.rpc('auto_inactivate_farms' as any);
 
     const [usersRes, farmsRes, todayRes] = await Promise.all([
@@ -103,7 +99,6 @@ export default function DashboardOverview() {
     const allUsers = usersRes.data ?? [];
     const approvedUsers = allUsers.filter(u => u.status === 'approved');
     const pendingOrRejected = allUsers.filter(u => u.status !== 'approved');
-
     setTotalUsers(allUsers.length);
     setActiveUsers(approvedUsers.length);
     setInactiveUsers(pendingOrRejected.length);
@@ -117,7 +112,6 @@ export default function DashboardOverview() {
     const inactive: Record<string, number> = {};
     const capByType: Record<string, number> = {};
     let totalCap = 0, totalActive = 0, totalPrapasca = 0, totalInactive = 0;
-
     FARM_TYPES.forEach(t => { active[t] = 0; prapasca[t] = 0; inactive[t] = 0; capByType[t] = 0; });
 
     allFarms.forEach((f: any) => {
@@ -133,7 +127,6 @@ export default function DashboardOverview() {
     setFarmStats({ total: allFarms.length, active, prapasca, inactive, totalActive, totalPrapasca, totalInactive });
     setCapacityStats({ total: totalCap, byType: capByType });
 
-    // Population
     const popByType: Record<string, number> = {};
     FARM_TYPES.forEach(t => { popByType[t] = 0; });
     const activeFarmIds = allFarms.filter((f: any) => f.status === 'active').map((f: any) => f.id);
@@ -174,7 +167,6 @@ export default function DashboardOverview() {
 
   const fmtNum = (n: number) => n.toLocaleString('id-ID');
 
-  // Chart data
   const capPopChartData = FARM_TYPES.map(t => ({
     name: FARM_TYPE_LABELS[t],
     Kapasitas: capacityStats.byType[t] || 0,
@@ -189,29 +181,25 @@ export default function DashboardOverview() {
   }));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header + filters */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground">Dashboard</h1>
           <p className="text-sm text-muted-foreground">Ringkasan data perunggasan</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex flex-wrap gap-2">
           <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               {Object.entries(FILTER_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={provinceFilter} onValueChange={(val) => {
-            setProvinceFilter(val);
-            setCityFilter('all');
-            if (val !== 'all') {
-              const prov = regionProvinces.find(p => p.name === val);
-              if (prov) fetchCities(prov.id);
-            }
+            setProvinceFilter(val); setCityFilter('all');
+            if (val !== 'all') { const prov = regionProvinces.find(p => p.name === val); if (prov) fetchCities(prov.id); }
           }}>
-            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Semua Provinsi" /></SelectTrigger>
+            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Semua Provinsi" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Semua Provinsi</SelectItem>
               {regionProvinces.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}
@@ -219,7 +207,7 @@ export default function DashboardOverview() {
           </Select>
           {provinceFilter !== 'all' && (
             <Select value={cityFilter} onValueChange={setCityFilter}>
-              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Semua Kota" /></SelectTrigger>
+              <SelectTrigger className="w-[160px]"><SelectValue placeholder="Semua Kota" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Kota</SelectItem>
                 {regionCities.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
@@ -230,7 +218,7 @@ export default function DashboardOverview() {
       </div>
 
       {filter === 'custom' && (
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <div><Label>Dari</Label><Input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} /></div>
           <div><Label>Sampai</Label><Input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} /></div>
         </div>
@@ -240,8 +228,8 @@ export default function DashboardOverview() {
         <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
       ) : (
         <>
-          {/* Top row: Peternak + Status Input */}
-          <div className="grid gap-6 lg:grid-cols-2">
+          {/* Top row */}
+          <div className="grid gap-4 sm:grid-cols-2">
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
@@ -305,7 +293,7 @@ export default function DashboardOverview() {
             </Card>
           </div>
 
-          {/* ── Kapasitas vs Populasi Graph ── */}
+          {/* Charts */}
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
@@ -314,44 +302,42 @@ export default function DashboardOverview() {
               </div>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={capPopChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(value: number) => value.toLocaleString('id-ID')} />
-                  <Legend />
-                  <Line type="monotone" dataKey="Kapasitas" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="Populasi" stroke="hsl(var(--success))" strokeWidth={2} dot={{ r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
+              <div className="w-full overflow-x-auto">
+                <div className="min-w-[500px]">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={capPopChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                      <YAxis tick={{ fontSize: 10 }} />
+                      <Tooltip formatter={(value: number) => value.toLocaleString('id-ID')} />
+                      <Legend />
+                      <Line type="monotone" dataKey="Kapasitas" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} />
+                      <Line type="monotone" dataKey="Populasi" stroke="hsl(var(--success))" strokeWidth={2} dot={{ r: 4 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          {/* ── Kapasitas vs Populasi Data ── */}
+          {/* Kapasitas vs Populasi Data */}
           <Card>
             <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Warehouse className="h-5 w-5 text-primary" />
                 <CardTitle className="text-base font-semibold">Kapasitas & Populasi</CardTitle>
                 <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">{fmtNum(farmStats.total)} total farm</span>
               </div>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {/* Kapasitas row */}
+            <CardContent className="space-y-4">
               <StatusRow
-                label="Kapasitas"
-                total={capacityStats.total}
-                byType={capacityStats.byType}
+                label="Kapasitas" total={capacityStats.total} byType={capacityStats.byType}
                 colorClass="bg-[hsl(var(--primary))] text-primary-foreground"
                 lightClass="bg-[hsl(var(--primary)/0.15)]"
                 borderClass="border-[hsl(var(--primary)/0.4)]"
               />
-              {/* Populasi row */}
               <StatusRow
-                label="Populasi"
-                total={populationStats.total}
-                byType={populationStats.byType}
+                label="Populasi" total={populationStats.total} byType={populationStats.byType}
                 colorClass="bg-[hsl(var(--success))] text-success-foreground"
                 lightClass="bg-[hsl(var(--success)/0.15)]"
                 borderClass="border-[hsl(var(--success)/0.4)]"
@@ -359,7 +345,7 @@ export default function DashboardOverview() {
             </CardContent>
           </Card>
 
-          {/* ── Status Peternakan Graph ── */}
+          {/* Status Chart */}
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
@@ -368,55 +354,44 @@ export default function DashboardOverview() {
               </div>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={statusChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(value: number) => value.toLocaleString('id-ID')} />
-                  <Legend />
-                  <Line type="monotone" dataKey="Aktif" stroke="hsl(var(--success))" strokeWidth={2} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="Pra/Pasca" stroke="hsl(var(--warning))" strokeWidth={2} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="Tidak Aktif" stroke="hsl(var(--destructive))" strokeWidth={2} dot={{ r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
+              <div className="w-full overflow-x-auto">
+                <div className="min-w-[500px]">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={statusChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                      <YAxis tick={{ fontSize: 10 }} />
+                      <Tooltip formatter={(value: number) => value.toLocaleString('id-ID')} />
+                      <Legend />
+                      <Line type="monotone" dataKey="Aktif" stroke="hsl(var(--success))" strokeWidth={2} dot={{ r: 4 }} />
+                      <Line type="monotone" dataKey="Pra/Pasca" stroke="hsl(var(--warning))" strokeWidth={2} dot={{ r: 4 }} />
+                      <Line type="monotone" dataKey="Tidak Aktif" stroke="hsl(var(--destructive))" strokeWidth={2} dot={{ r: 4 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          {/* ── Status Peternakan Data ── */}
+          {/* Status Data */}
           <Card>
             <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Warehouse className="h-5 w-5 text-primary" />
                 <CardTitle className="text-base font-semibold">Status Peternakan</CardTitle>
                 <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">{fmtNum(farmStats.total)} total</span>
               </div>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <StatusRow
-                label="Aktif"
-                total={farmStats.totalActive}
-                byType={farmStats.active}
+            <CardContent className="space-y-4">
+              <StatusRow label="Aktif" total={farmStats.totalActive} byType={farmStats.active}
                 colorClass="bg-[hsl(var(--success))] text-success-foreground"
-                lightClass="bg-[hsl(var(--success)/0.15)]"
-                borderClass="border-[hsl(var(--success)/0.4)]"
-              />
-              <StatusRow
-                label="Pra / Pasca"
-                total={farmStats.totalPrapasca}
-                byType={farmStats.prapasca}
+                lightClass="bg-[hsl(var(--success)/0.15)]" borderClass="border-[hsl(var(--success)/0.4)]" />
+              <StatusRow label="Pra / Pasca" total={farmStats.totalPrapasca} byType={farmStats.prapasca}
                 colorClass="bg-[hsl(var(--warning))] text-warning-foreground"
-                lightClass="bg-[hsl(var(--warning)/0.15)]"
-                borderClass="border-[hsl(var(--warning)/0.4)]"
-              />
-              <StatusRow
-                label="Tidak Aktif"
-                total={farmStats.totalInactive}
-                byType={farmStats.inactive}
+                lightClass="bg-[hsl(var(--warning)/0.15)]" borderClass="border-[hsl(var(--warning)/0.4)]" />
+              <StatusRow label="Tidak Aktif" total={farmStats.totalInactive} byType={farmStats.inactive}
                 colorClass="bg-[hsl(var(--destructive))] text-destructive-foreground"
-                lightClass="bg-[hsl(var(--destructive)/0.15)]"
-                borderClass="border-[hsl(var(--destructive)/0.4)]"
-              />
+                lightClass="bg-[hsl(var(--destructive)/0.15)]" borderClass="border-[hsl(var(--destructive)/0.4)]" />
             </CardContent>
           </Card>
         </>

@@ -24,11 +24,10 @@ export default function PublicFooter() {
   return (
     <footer className="border-t bg-foreground text-primary-foreground">
       <div className="container py-12">
-        <div className="grid gap-8 md:grid-cols-4">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <div className="flex items-center gap-2 mb-4">
               <img src={logo} alt="PINSAR" className="h-8 w-8 object-contain rounded" />
-              <span className="font-display text-lg font-bold">PINSAR</span>
             </div>
             <p className="text-sm text-primary-foreground/70">
               Perhimpunan Insan Perunggasan Rakyat Indonesia. Membangun industri perunggasan yang berkelanjutan.
@@ -41,7 +40,7 @@ export default function PublicFooter() {
               <li><Link to="/" className="hover:text-primary-foreground">Beranda</Link></li>
               <li><Link to="/harga" className="hover:text-primary-foreground">Harga</Link></li>
               <li><Link to="/berita" className="hover:text-primary-foreground">Berita</Link></li>
-              <li><Link to="/tentang" className="hover:text-primary-foreground">Tentang Kami</Link></li>
+              <li><Link to="/tentang/sejarah" className="hover:text-primary-foreground">Tentang Kami</Link></li>
             </ul>
           </div>
 
