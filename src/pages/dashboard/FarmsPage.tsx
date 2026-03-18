@@ -174,10 +174,6 @@ export default function FarmsPage() {
     const numKapasitas = Number(kapasitas) || 0;
     const numInitialPop = Number(initialPop) || 0;
 
-    if (numInitialPop > numKapasitas) {
-      toast({ title: 'Validasi gagal', description: 'Populasi awal tidak boleh melebihi kapasitas kandang.', variant: 'destructive' });
-      setSubmitting(false); return;
-    }
 
     const payload: any = {
       name, province: provinceName, city: cityName || null, district: districtName || null, kelurahan: villageName || null,
