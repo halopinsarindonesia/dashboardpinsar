@@ -393,7 +393,7 @@ export default function SupplyPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold text-foreground">Input Produksi</h1>
+          <h1 className="font-display text-2xl font-bold text-foreground">Produksi</h1>
           <p className="text-sm text-muted-foreground">Catat data produksi peternakan</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
