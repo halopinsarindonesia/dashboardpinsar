@@ -76,9 +76,10 @@ export default function SupplyPage() {
       .order('record_date', { ascending: false }).limit(50);
 
     if (!isSuperadmin) {
-      const farmIds = farmsData.map(f => f.id);
-      if (farmIds.length > 0) {
-        recordsQuery = recordsQuery.in('farm_id', farmIds);
+      const { data: memberData } = await supabase.from('farm_members').select('farm_id').eq('user_id', user.id);
+      const memberFarmIds = memberData?.map((m: any) => m.farm_id) ?? [];
+      if (memberFarmIds.length > 0) {
+        recordsQuery = recordsQuery.in('farm_id', memberFarmIds);
       } else {
         setRecords([]);
         setLoading(false);
