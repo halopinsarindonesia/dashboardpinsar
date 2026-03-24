@@ -61,7 +61,7 @@ export default function PriceTicker() {
           egg: formatP(a && a.eC > 0 ? a.eS / a.eC : null),
         };
       })
-      .filter(p => p.broiler !== '-' || p.egg !== '-');
+      ;
 
     setPrices(result);
   }
