@@ -93,7 +93,8 @@ export default function MapPage() {
     if (loading || !containerRef.current) return;
     if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
 
-    const map = L.map(containerRef.current, { zIndex: 1 }).setView([-2.5, 118], 5);
+    const map = L.map(containerRef.current).setView([-2.5, 118], 5);
+    (containerRef.current as HTMLElement).style.zIndex = '1';
     mapRef.current = map;
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
