@@ -52,14 +52,16 @@ export default function PriceTicker() {
       if (r.layer_egg_price_per_kg && Number(r.layer_egg_price_per_kg) > 0) { a.eS += Number(r.layer_egg_price_per_kg); a.eC++; }
     });
 
-    const result: ProvPrice[] = ALL_PROVINCES.map(prov => {
-      const a = agg.get(prov);
-      return {
-        province: prov,
-        broiler: formatP(a && a.bC > 0 ? a.bS / a.bC : null),
-        egg: formatP(a && a.eC > 0 ? a.eS / a.eC : null),
-      };
-    });
+    const result: ProvPrice[] = ALL_PROVINCES
+      .map(prov => {
+        const a = agg.get(prov);
+        return {
+          province: prov,
+          broiler: formatP(a && a.bC > 0 ? a.bS / a.bC : null),
+          egg: formatP(a && a.eC > 0 ? a.eS / a.eC : null),
+        };
+      })
+      .filter(p => p.broiler !== '-' || p.egg !== '-');
 
     setPrices(result);
   }
