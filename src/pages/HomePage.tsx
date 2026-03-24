@@ -113,11 +113,6 @@ export default function HomePage() {
                   Masuk Dashboard <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <Link to="/tentang/sejarah">
-                <Button size="lg" variant="outline" className="font-semibold border-white/30 text-white hover:bg-white/10">
-                  Tentang Kami
-                </Button>
-              </Link>
             </div>
           </div>
         </div>
