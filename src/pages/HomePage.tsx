@@ -53,7 +53,7 @@ export default function HomePage() {
   useEffect(() => {
     // Fetch blogs
     supabase.from('cms_blogs').select('id, title, content, blog_type, publish_date, created_at, images')
-      .eq('status', 'active').order('publish_date', { ascending: false }).limit(6)
+      .eq('status', 'active').order('publish_date', { ascending: false }).limit(5)
       .then(({ data }) => setBlogs((data as BlogItem[]) ?? []));
 
     // Fetch partners
@@ -159,10 +159,10 @@ export default function HomePage() {
           {blogs.length === 0 ? (
             <p className="text-sm text-muted-foreground">Belum ada berita.</p>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {blogs.slice(0, 6).map((item) => (
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              {blogs.slice(0, 5).map((item) => (
                 <Link key={item.id} to={`/berita/${item.id}`} className="group">
-                  <article className="rounded-xl border bg-card shadow-sm hover:shadow-md transition-shadow h-full flex flex-col overflow-hidden">
+                  <article className="rounded-xl border bg-card shadow-sm hover:shadow-md transition-shadow h-full flex flex-col overflow-hidden min-w-0">
                     <div className="h-40 bg-muted flex items-center justify-center overflow-hidden">
                       {item.images && item.images[0] ? (
                         <img src={item.images[0]} alt={item.title} className="h-full w-full object-cover" />
