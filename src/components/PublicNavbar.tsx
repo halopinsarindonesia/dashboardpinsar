@@ -26,7 +26,7 @@ export default function PublicNavbar() {
 
   const links = [
     { label: 'Beranda', href: '/' },
-    { label: 'Harga', href: '/harga' },
+    { label: 'Informasi', href: '/harga' },
     { label: 'Berita', href: '/berita' },
   ];
 
