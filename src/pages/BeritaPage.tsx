@@ -34,7 +34,7 @@ export default function BeritaPage() {
     d ? new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
 
   return (
-    <div className="container py-12">
+    <div className="px-4 sm:container py-12 overflow-hidden">
       <h1 className="font-display text-3xl font-bold text-foreground mb-2">Berita & Kegiatan</h1>
       <p className="text-muted-foreground mb-8">Informasi terbaru dari PINSAR Indonesia</p>
 
@@ -43,10 +43,10 @@ export default function BeritaPage() {
       ) : blogs.length === 0 ? (
         <p className="text-muted-foreground py-8 text-center">Belum ada artikel.</p>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {blogs.map(item => (
             <Link key={item.id} to={`/berita/${item.id}`} className="group">
-              <article className="rounded-xl border bg-card shadow-sm hover:shadow-md transition-shadow h-full flex flex-col overflow-hidden">
+              <article className="rounded-xl border bg-card shadow-sm hover:shadow-md transition-shadow h-full flex flex-col overflow-hidden min-w-0">
                 <div className="h-40 bg-muted flex items-center justify-center overflow-hidden">
                   {item.images && item.images[0] ? (
                     <img src={item.images[0]} alt={item.title} className="h-full w-full object-cover" />

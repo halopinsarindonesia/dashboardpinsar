@@ -68,10 +68,11 @@ export default function HomePage() {
 
     // Fetch stats
     Promise.all([
-      supabase.from('farms').select('province').eq('status', 'active' as any),
+      supabase.from('farms').select('province, status'),
       supabase.from('profiles').select('id, role').eq('status', 'approved' as any).neq('role', 'superadmin' as any),
     ]).then(([farmsRes, profilesRes]) => {
-      const provinces = new Set((farmsRes.data ?? []).map((f: any) => f.province));
+      const activeFarms = (farmsRes.data ?? []).filter((f: any) => f.status === 'active' || f.status === 'prapasca');
+      const provinces = new Set(activeFarms.map((f: any) => f.province).filter(Boolean));
       const allMembers = profilesRes.data ?? [];
       const pengurus = allMembers.filter((p: any) => p.role === 'dpp' || p.role === 'dpw');
       setStats({ regions: provinces.size, members: allMembers.length, pengurus: pengurus.length });
@@ -120,7 +121,7 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-        <p className="absolute bottom-3 right-4 text-[10px] text-white/40">Ukuran banner ideal: 1920×600 px</p>
+        
       </section>
 
       {/* PINSAR in Numbers */}
