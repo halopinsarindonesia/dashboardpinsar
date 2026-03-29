@@ -1,13 +1,19 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useRef, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import LanguageToggle from '@/components/LanguageToggle';
 import logo from '@/assets/logopinsar.jpg';
 
 export default function PublicNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [tentangOpen, setTentangOpen] = useState(false);
   const tentangRef = useRef<HTMLDivElement>(null);
+  const { session } = useAuth();
+  const { t } = useLanguage();
+  const navigate = useNavigate();
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -18,17 +24,25 @@ export default function PublicNavbar() {
   }, []);
 
   const tentangLinks = [
-    { label: 'Sejarah', href: '/tentang/sejarah' },
-    { label: 'Visi & Misi', href: '/tentang/visi-misi' },
-    { label: 'Struktur Organisasi', href: '/tentang/struktur' },
-    { label: 'Legalitas', href: '/tentang/legalitas' },
+    { label: t('Sejarah', 'History'), href: '/tentang/sejarah' },
+    { label: t('Visi & Misi', 'Vision & Mission'), href: '/tentang/visi-misi' },
+    { label: t('Struktur Organisasi', 'Organization Structure'), href: '/tentang/struktur' },
+    { label: t('Legalitas', 'Legality'), href: '/tentang/legalitas' },
   ];
 
   const links = [
-    { label: 'Beranda', href: '/' },
-    { label: 'Informasi', href: '/harga' },
-    { label: 'Berita', href: '/berita' },
+    { label: t('Beranda', 'Home'), href: '/' },
+    { label: t('Informasi', 'Information'), href: '/harga' },
+    { label: t('Berita', 'News'), href: '/berita' },
   ];
+
+  const handleMasuk = () => {
+    if (session) {
+      navigate('/dashboard');
+    } else {
+      navigate('/login');
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
@@ -39,37 +53,26 @@ export default function PublicNavbar() {
 
         <nav className="hidden items-center gap-1 md:flex">
           {links.map((link) => (
-            <Link
-              key={link.href}
-              to={link.href}
-              className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
+            <Link key={link.href} to={link.href} className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
               {link.label}
             </Link>
           ))}
 
-          {/* Tentang Kami dropdown */}
           <div ref={tentangRef} className="relative">
             <button
               className="flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               onMouseEnter={() => setTentangOpen(true)}
               onClick={() => setTentangOpen(!tentangOpen)}
             >
-              Tentang Kami <ChevronDown className="h-3 w-3" />
+              {t('Tentang Kami', 'About Us')} <ChevronDown className="h-3 w-3" />
             </button>
             {tentangOpen && (
-              <div
-                className="absolute left-0 top-full mt-1 w-52 rounded-lg border bg-card shadow-lg py-1 z-50"
+              <div className="absolute left-0 top-full mt-1 w-52 rounded-lg border bg-card shadow-lg py-1 z-50"
                 onMouseLeave={() => setTentangOpen(false)}
                 onMouseEnter={() => setTentangOpen(true)}
               >
                 {tentangLinks.map(l => (
-                  <Link
-                    key={l.href}
-                    to={l.href}
-                    className="block px-4 py-2.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                    onClick={() => setTentangOpen(false)}
-                  >
+                  <Link key={l.href} to={l.href} className="block px-4 py-2.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors" onClick={() => setTentangOpen(false)}>
                     {l.label}
                   </Link>
                 ))}
@@ -77,16 +80,15 @@ export default function PublicNavbar() {
             )}
           </div>
 
-          <Link
-            to="/kontak"
-            className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Kontak
+          <Link to="/kontak" className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+            {t('Kontak', 'Contact')}
           </Link>
 
-          <Link to="/login">
-            <Button size="sm" className="ml-4">Masuk</Button>
-          </Link>
+          <LanguageToggle variant="ghost" />
+
+          <Button size="sm" className="ml-2" onClick={handleMasuk}>
+            {session ? t('Dashboard', 'Dashboard') : t('Masuk', 'Login')}
+          </Button>
         </nav>
 
         <button className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
@@ -103,7 +105,7 @@ export default function PublicNavbar() {
               </Link>
             ))}
             <div className="px-3 py-2">
-              <p className="text-xs font-semibold text-foreground mb-1">Tentang Kami</p>
+              <p className="text-xs font-semibold text-foreground mb-1">{t('Tentang Kami', 'About Us')}</p>
               <div className="flex flex-col gap-1 pl-2">
                 {tentangLinks.map(l => (
                   <Link key={l.href} to={l.href} className="rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground" onClick={() => setMobileOpen(false)}>
@@ -113,11 +115,14 @@ export default function PublicNavbar() {
               </div>
             </div>
             <Link to="/kontak" className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground" onClick={() => setMobileOpen(false)}>
-              Kontak
+              {t('Kontak', 'Contact')}
             </Link>
-            <Link to="/login" onClick={() => setMobileOpen(false)}>
-              <Button size="sm" className="w-full">Masuk</Button>
-            </Link>
+            <div className="px-3 py-1"><LanguageToggle variant="outline" /></div>
+            <div className="px-3" onClick={() => setMobileOpen(false)}>
+              <Button size="sm" className="w-full" onClick={handleMasuk}>
+                {session ? t('Dashboard', 'Dashboard') : t('Masuk', 'Login')}
+              </Button>
+            </div>
           </nav>
         </div>
       )}
