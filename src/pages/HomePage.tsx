@@ -112,8 +112,8 @@ export default function HomePage() {
           <p className="text-sm font-medium text-primary-foreground text-center sm:text-left">
             {t('Daftar sekarang untuk mendapatkan informasi komprehensif mengenai suplai unggas Indonesia', 'Register now to get comprehensive information on Indonesian poultry supply')}
           </p>
-          <Link to="/register">
-            <Button variant="secondary" size="sm" className="shrink-0 font-semibold">
+           <Link to="/register">
+            <Button size="sm" className="shrink-0 font-semibold bg-white text-primary hover:bg-white/90">
               {t('Daftar Sekarang', 'Register Now')} <ArrowRight className="ml-1 h-3 w-3" />
             </Button>
           </Link>
@@ -124,6 +124,7 @@ export default function HomePage() {
       {overview && (
         <section className="py-12 bg-card border-b">
           <div className="container max-w-3xl">
+            <h2 className="font-display text-2xl font-bold text-foreground text-center mb-6">{t('Tentang PINSAR', 'About PINSAR')}</h2>
             <div className="prose prose-sm max-w-none text-muted-foreground" dangerouslySetInnerHTML={{ __html: overview }} />
           </div>
         </section>

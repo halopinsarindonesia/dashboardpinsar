@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import LanguageToggle from '@/components/LanguageToggle';
-import logo from '@/assets/logopinsar.jpg';
+import logo from '@/assets/pinsar-logo.png';
 
 export default function PublicNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
