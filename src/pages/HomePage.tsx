@@ -56,7 +56,7 @@ export default function HomePage() {
 
     supabase.from('cms_gallery' as any).select('id, image_url, title')
       .eq('is_active', true).order('sort_order').limit(5)
-      .then(({ data }) => setGallery((data as GalleryItem[]) ?? []));
+      .then(({ data }) => setGallery((data as unknown as GalleryItem[]) ?? []));
 
     Promise.all([
       supabase.from('farms').select('province, status'),
