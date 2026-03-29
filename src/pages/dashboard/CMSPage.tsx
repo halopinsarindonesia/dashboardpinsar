@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -12,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { logAudit } from '@/lib/audit';
 import RichTextEditor from '@/components/RichTextEditor';
-import { Loader2, Plus, Pencil, Trash2, Image, FileText, Phone, Globe, Handshake } from 'lucide-react';
+import { Loader2, Plus, Pencil, Trash2, Image, FileText, Phone, Globe, Handshake, Eye, ImagePlus } from 'lucide-react';
 
 // ─── Banner ─────────────────────────────
 function BannerTab() {
@@ -45,10 +44,7 @@ function BannerTab() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <div>
-          <p className="text-sm text-muted-foreground">Kelola banner halaman utama (1 banner aktif ditampilkan)</p>
-          <p className="text-xs text-muted-foreground mt-1">Ukuran ideal: <strong>1920×600 px</strong> (rasio 16:5, landscape)</p>
-        </div>
+        <p className="text-sm text-muted-foreground">Kelola banner halaman utama</p>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild><Button size="sm"><Plus className="mr-2 h-4 w-4" />Tambah Banner</Button></DialogTrigger>
           <DialogContent>
@@ -57,7 +53,6 @@ function BannerTab() {
               <div><Label>Judul</Label><Input value={title} onChange={e => setTitle(e.target.value)} /></div>
               <div><Label>URL Gambar</Label><Input value={imageUrl} onChange={e => setImageUrl(e.target.value)} required placeholder="https://..." /></div>
               <div><Label>URL Link (opsional)</Label><Input value={linkUrl} onChange={e => setLinkUrl(e.target.value)} /></div>
-              <p className="text-xs text-muted-foreground">Ukuran ideal: 1920×600 px (rasio 16:5). Gambar akan ditampilkan sebagai background banner di halaman Beranda.</p>
               <Button type="submit" className="w-full" disabled={submitting}>{submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Simpan'}</Button>
             </form>
           </DialogContent>
@@ -84,6 +79,42 @@ function BannerTab() {
   );
 }
 
+// ─── Overview (Rich Text) ─────────────────
+function OverviewTab() {
+  const { user, profile } = useAuth();
+  const { toast } = useToast();
+  const [content, setContent] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [sectionId, setSectionId] = useState<string | null>(null);
+
+  useEffect(() => { load(); }, []);
+  async function load() {
+    setLoading(true);
+    const { data } = await supabase.from('cms_about').select('*').eq('section', 'overview').maybeSingle();
+    if (data) { setSectionId(data.id); setContent(data.content || ''); }
+    setLoading(false);
+  }
+
+  async function handleSave() {
+    if (!sectionId) return; setSaving(true);
+    const { error } = await supabase.from('cms_about').update({ content }).eq('id', sectionId);
+    if (error) toast({ title: 'Gagal', description: error.message, variant: 'destructive' });
+    else { await logAudit({ action: 'edit', module: 'CMS Overview', userId: user?.id, userName: profile?.full_name }); toast({ title: 'Overview tersimpan' }); }
+    setSaving(false);
+  }
+
+  if (loading) return <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">Konten overview ditampilkan di bawah banner halaman utama</p>
+      <RichTextEditor content={content} onChange={setContent} />
+      <Button onClick={handleSave} disabled={saving}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Simpan Overview</Button>
+    </div>
+  );
+}
+
 // ─── About (Rich Text) ─────────────────
 function AboutTab() {
   const { user, profile } = useAuth();
@@ -99,11 +130,12 @@ function AboutTab() {
   async function load() {
     setLoading(true);
     const { data } = await supabase.from('cms_about').select('*');
-    if (data && data.length === 0) {
+    const filtered = (data ?? []).filter(d => d.section !== 'overview');
+    if (filtered.length === 0) {
       await supabase.from('cms_about').insert(Object.keys(SECTION_LABELS).map(s => ({ section: s, content: '' })));
       const { data: seeded } = await supabase.from('cms_about').select('*');
-      setSections(seeded ?? []);
-    } else setSections(data ?? []);
+      setSections((seeded ?? []).filter(d => d.section !== 'overview'));
+    } else setSections(filtered);
     setLoading(false);
   }
 
@@ -179,7 +211,7 @@ function ContactTab() {
         <div><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
       </div>
       <div><Label>WhatsApp</Label><Input value={form.whatsapp} onChange={e => setForm({ ...form, whatsapp: e.target.value })} placeholder="628xxxxxxxxxx" /></div>
-      <div><Label>Alamat</Label><Textarea value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} /></div>
+      <div><Label>Alamat</Label><Input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} /></div>
       <h3 className="font-display text-sm font-semibold text-foreground pt-2">Media Sosial</h3>
       <div className="grid gap-4 sm:grid-cols-2">
         <div><Label>Facebook</Label><Input value={form.facebook} onChange={e => setForm({ ...form, facebook: e.target.value })} /></div>
@@ -192,7 +224,7 @@ function ContactTab() {
   );
 }
 
-// ─── Blog (Rich Text + Banner + Edit) ──────────
+// ─── Blog ──────────
 function BlogTab() {
   const { user, profile } = useAuth();
   const { toast } = useToast();
@@ -209,13 +241,8 @@ function BlogTab() {
 
   useEffect(() => { load(); }, []);
   async function load() { setLoading(true); const { data } = await supabase.from('cms_blogs').select('*').order('created_at', { ascending: false }); setBlogs(data ?? []); setLoading(false); }
-
   function resetForm() { setTitle(''); setContent(''); setBlogType('news'); setStatus('active'); setBannerUrl(''); setEditingBlog(null); }
-
-  function openEdit(b: any) {
-    setEditingBlog(b); setTitle(b.title); setContent(b.content || '');
-    setBlogType(b.blog_type); setStatus(b.status); setBannerUrl(b.images?.[0] || ''); setDialogOpen(true);
-  }
+  function openEdit(b: any) { setEditingBlog(b); setTitle(b.title); setContent(b.content || ''); setBlogType(b.blog_type); setStatus(b.status); setBannerUrl(b.images?.[0] || ''); setDialogOpen(true); }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault(); setSubmitting(true);
@@ -249,14 +276,12 @@ function BlogTab() {
               <div><Label>Judul</Label><Input value={title} onChange={e => setTitle(e.target.value)} required /></div>
               <div><Label>Banner Image URL</Label><Input value={bannerUrl} onChange={e => setBannerUrl(e.target.value)} placeholder="https://..." /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Tipe</Label>
+                <div><Label>Tipe</Label>
                   <Select value={blogType} onValueChange={setBlogType}><SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent><SelectItem value="news">Berita</SelectItem><SelectItem value="activity">Kegiatan</SelectItem></SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label>Status</Label>
+                <div><Label>Status</Label>
                   <Select value={status} onValueChange={setStatus}><SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent><SelectItem value="active">Aktif</SelectItem><SelectItem value="inactive">Nonaktif</SelectItem></SelectContent>
                   </Select>
@@ -279,14 +304,13 @@ function BlogTab() {
                   <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${b.status === 'active' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
                     {b.blog_type === 'news' ? 'Berita' : 'Kegiatan'}
                   </span>
-                  <span className={`text-xs ${b.status === 'active' ? 'text-primary' : 'text-muted-foreground'}`}>{b.status === 'active' ? 'Aktif' : 'Nonaktif'}</span>
                 </div>
                 <h3 className="mt-1 font-medium text-foreground">{b.title}</h3>
                 <p className="mt-1 text-xs text-muted-foreground">{new Date(b.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
               </div>
               <div className="flex gap-1 shrink-0">
-                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(b)} title="Edit"><Pencil className="h-4 w-4" /></Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(b.id)} title="Hapus"><Trash2 className="h-4 w-4" /></Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(b)}><Pencil className="h-4 w-4" /></Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(b.id)}><Trash2 className="h-4 w-4" /></Button>
               </div>
             </div>
           ))}
@@ -358,6 +382,70 @@ function PartnersTab() {
   );
 }
 
+// ─── Gallery ────────────────────────────
+function GalleryTab() {
+  const { user, profile } = useAuth();
+  const { toast } = useToast();
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [title, setTitle] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => { load(); }, []);
+  async function load() { setLoading(true); const { data } = await supabase.from('cms_gallery' as any).select('*').order('sort_order'); setItems((data as any[]) ?? []); setLoading(false); }
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault(); setSubmitting(true);
+    const { error } = await (supabase.from('cms_gallery' as any) as any).insert({ title: title || null, image_url: imageUrl, sort_order: items.length });
+    if (error) toast({ title: 'Gagal', description: error.message, variant: 'destructive' });
+    else { await logAudit({ action: 'create', module: 'CMS Gallery', userId: user?.id, userName: profile?.full_name, newValue: { title } }); toast({ title: 'Gambar ditambahkan' }); setDialogOpen(false); setTitle(''); setImageUrl(''); load(); }
+    setSubmitting(false);
+  }
+
+  async function handleDelete(id: string) {
+    const { error } = await (supabase.from('cms_gallery' as any) as any).delete().eq('id', id);
+    if (!error) { await logAudit({ action: 'delete', module: 'CMS Gallery', userId: user?.id, userName: profile?.full_name, oldValue: { id } }); toast({ title: 'Gambar dihapus' }); load(); }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-muted-foreground">Kelola galeri (maks. 5 gambar ditampilkan di beranda)</p>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild><Button size="sm"><Plus className="mr-2 h-4 w-4" />Tambah Gambar</Button></DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Tambah Gambar Galeri</DialogTitle></DialogHeader>
+            <form onSubmit={handleAdd} className="space-y-4">
+              <div><Label>Judul (opsional)</Label><Input value={title} onChange={e => setTitle(e.target.value)} /></div>
+              <div><Label>URL Gambar</Label><Input value={imageUrl} onChange={e => setImageUrl(e.target.value)} required placeholder="https://..." /></div>
+              <Button type="submit" className="w-full" disabled={submitting}>{submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Simpan'}</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+      {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> : items.length === 0 ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">Belum ada gambar galeri.</p>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+          {items.map((g: any) => (
+            <div key={g.id} className="relative overflow-hidden rounded-lg border bg-card">
+              <div className="aspect-video bg-muted flex items-center justify-center">
+                <img src={g.image_url} alt={g.title || 'Gallery'} className="h-full w-full object-cover" />
+              </div>
+              <div className="flex items-center justify-between p-3">
+                <p className="text-sm font-medium text-foreground truncate">{g.title || 'Tanpa judul'}</p>
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(g.id)}><Trash2 className="h-4 w-4" /></Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main CMS Page ──────────────────────
 export default function CMSPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -369,6 +457,8 @@ export default function CMSPage() {
         <div ref={scrollRef} className="overflow-x-auto -mx-6 px-6 pb-1">
           <TabsList className="inline-flex w-auto min-w-max">
             <TabsTrigger value="banner"><Image className="mr-1.5 h-4 w-4" />Banner</TabsTrigger>
+            <TabsTrigger value="overview"><Eye className="mr-1.5 h-4 w-4" />Overview</TabsTrigger>
+            <TabsTrigger value="gallery"><ImagePlus className="mr-1.5 h-4 w-4" />Galeri</TabsTrigger>
             <TabsTrigger value="about"><FileText className="mr-1.5 h-4 w-4" />Tentang Kami</TabsTrigger>
             <TabsTrigger value="contact"><Phone className="mr-1.5 h-4 w-4" />Kontak</TabsTrigger>
             <TabsTrigger value="blog"><Globe className="mr-1.5 h-4 w-4" />Blog</TabsTrigger>
@@ -376,6 +466,8 @@ export default function CMSPage() {
           </TabsList>
         </div>
         <TabsContent value="banner"><BannerTab /></TabsContent>
+        <TabsContent value="overview"><OverviewTab /></TabsContent>
+        <TabsContent value="gallery"><GalleryTab /></TabsContent>
         <TabsContent value="about"><AboutTab /></TabsContent>
         <TabsContent value="contact"><ContactTab /></TabsContent>
         <TabsContent value="blog"><BlogTab /></TabsContent>
