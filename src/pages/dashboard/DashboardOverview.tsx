@@ -457,6 +457,64 @@ export default function DashboardOverview() {
                 lightClass="bg-[hsl(var(--destructive)/0.15)]" borderClass="border-[hsl(var(--destructive)/0.4)]" />
             </CardContent>
           </Card>
+
+          {/* Grafik Harga */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                <CardTitle className="text-base font-semibold">Grafik Harga (MTD)</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="w-full overflow-x-auto">
+                <div className="min-w-[500px]">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={priceChartData} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v) => `Rp ${(v / 1000).toFixed(0)}k`} />
+                      <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={100} />
+                      <Tooltip formatter={(value: number) => `Rp ${value.toLocaleString('id-ID')}`} />
+                      <Legend />
+                      <Bar dataKey="Rata-rata Harga" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Rata Rata Harga Data */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                <CardTitle className="text-base font-semibold">Rata-Rata Harga (MTD)</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Overall averages */}
+              <div className="space-y-2">
+                <div className="rounded-lg border-2 border-[hsl(var(--primary)/0.4)] bg-[hsl(var(--primary))] p-3 flex items-center justify-between text-primary-foreground">
+                  <span className="text-sm font-bold">Rata-rata Broiler (per Kg)</span>
+                  <span className="text-lg font-bold">{fmtRupiah(priceStats.total.avgBroiler)}</span>
+                </div>
+                <div className="rounded-lg border-2 border-[hsl(var(--success)/0.4)] bg-[hsl(var(--success))] p-3 flex items-center justify-between text-success-foreground">
+                  <span className="text-sm font-bold">Rata-rata Telur (per Kg)</span>
+                  <span className="text-lg font-bold">{fmtRupiah(priceStats.total.avgEgg)}</span>
+                </div>
+              </div>
+              {/* Per type breakdown */}
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                {FARM_TYPES.map(t => (
+                  <div key={t} className="rounded-lg border border-border bg-muted/30 p-2 text-center">
+                    <span className="text-[10px] font-semibold text-foreground block leading-tight">{FARM_TYPE_LABELS[t]}</span>
+                    <span className="text-sm font-bold text-foreground">{fmtRupiah(priceStats.byType[t]?.avgPrice || 0)}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </>
       )}
     </div>
