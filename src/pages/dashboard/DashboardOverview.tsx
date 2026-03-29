@@ -236,6 +236,13 @@ export default function DashboardOverview() {
     'Tidak Aktif': farmStats.inactive[t] || 0,
   }));
 
+  const priceChartData = FARM_TYPES.map(t => ({
+    name: FARM_TYPE_LABELS[t],
+    'Rata-rata Harga': priceStats.byType[t]?.avgPrice || 0,
+  }));
+
+  const fmtRupiah = (n: number) => n > 0 ? `Rp ${n.toLocaleString('id-ID')}` : '-';
+
   return (
     <div className="space-y-6">
       {/* Header + filters */}
