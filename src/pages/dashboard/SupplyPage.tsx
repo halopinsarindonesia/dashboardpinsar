@@ -272,7 +272,9 @@ export default function SupplyPage() {
       else {
         await logAudit({ action: 'edit', module: 'Produksi', userId: user!.id, userName: profile?.full_name, oldValue: editRecord, newValue: payload });
         toast({ title: 'Data produksi berhasil diperbarui' });
-        if (newPop <= 0) {
+        const farm = farms.find(f => f.id === selectedFarmId);
+        const isLayer = farm && LAYER_TYPES.includes(farm.farm_type);
+        if (newPop <= 0 && (isLayer || !isLayer)) {
           await supabase.from('farms').update({ status: 'prapasca' as any }).eq('id', selectedFarmId).eq('status', 'active');
         }
         resetForm(); setDialogOpen(false); loadData();
@@ -288,7 +290,9 @@ export default function SupplyPage() {
       else {
         await logAudit({ action: 'create', module: 'Produksi', userId: user!.id, userName: profile?.full_name, newValue: payload });
         toast({ title: 'Berhasil', description: 'Data produksi berhasil disimpan.' });
-        if (newPop <= 0) {
+        const farm = farms.find(f => f.id === selectedFarmId);
+        const isLayer = farm && LAYER_TYPES.includes(farm.farm_type);
+        if (newPop <= 0 && (isLayer || !isLayer)) {
           await supabase.from('farms').update({ status: 'prapasca' as any }).eq('id', selectedFarmId).eq('status', 'active');
         }
         resetForm(); setDialogOpen(false); loadData();
