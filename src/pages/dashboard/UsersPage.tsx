@@ -12,13 +12,14 @@ import { logAudit } from '@/lib/audit';
 import { useIndonesiaRegions } from '@/hooks/use-indonesia-regions';
 import { Plus, Loader2, CheckCircle, XCircle, Pencil } from 'lucide-react';
 
-const ROLE_LABELS: Record<string, string> = { dpp: 'DPP', dpw: 'DPW', peternak: 'Anggota' };
+const ROLE_LABELS: Record<string, string> = { dpp: 'DPP', dpd: 'DPD', dpw: 'DPW', peternak: 'Anggota' };
 const STATUS_LABELS: Record<string, string> = { approved: 'Aktif', pending: 'Menunggu', rejected: 'Tidak Aktif' };
 
 interface UserProfile {
   id: string; full_name: string; email: string; phone: string | null;
   role: string; status: string; province: string | null; created_at: string;
   house_address?: string | null; work_address?: string | null;
+  ktp?: string | null; kk?: string | null;
 }
 
 export default function UsersPage() {
@@ -32,7 +33,6 @@ export default function UsersPage() {
   const [editUser, setEditUser] = useState<UserProfile | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Add form
   const [formName, setFormName] = useState('');
   const [formEmail, setFormEmail] = useState('');
   const [formPhone, setFormPhone] = useState('');
@@ -43,6 +43,10 @@ export default function UsersPage() {
   const [formDistrict, setFormDistrict] = useState('');
   const [formVillage, setFormVillage] = useState('');
   const [formStatus, setFormStatus] = useState('approved');
+  const [formKtp, setFormKtp] = useState('');
+  const [formKk, setFormKk] = useState('');
+  const [ktpError, setKtpError] = useState('');
+  const [kkError, setKkError] = useState('');
 
   useEffect(() => { loadUsers(); }, []);
 
@@ -54,14 +58,12 @@ export default function UsersPage() {
     ]);
 
     const allUsers = (usersRes.data as UserProfile[] ?? []);
-    // Count farms per user
     const counts: Record<string, number> = {};
     (farmsRes.data ?? []).forEach((f: any) => {
       if (f.owner_id) counts[f.owner_id] = (counts[f.owner_id] || 0) + 1;
     });
     setFarmCounts(counts);
 
-    // Sort: pending first
     const sorted = allUsers.sort((a, b) => {
       if (a.status === 'pending' && b.status !== 'pending') return -1;
       if (a.status !== 'pending' && b.status === 'pending') return 1;
@@ -75,17 +77,15 @@ export default function UsersPage() {
   function resetForm() {
     setFormName(''); setFormEmail(''); setFormPhone(''); setFormPassword('');
     setFormRole('peternak'); setFormProvince(''); setFormCity(''); setFormDistrict('');
-    setFormVillage(''); setFormStatus('approved'); setEditUser(null);
+    setFormVillage(''); setFormStatus('approved'); setFormKtp(''); setFormKk('');
+    setKtpError(''); setKkError(''); setEditUser(null);
   }
 
   function openEdit(u: UserProfile) {
     setEditUser(u);
-    setFormName(u.full_name);
-    setFormEmail(u.email);
-    setFormPhone(u.phone || '');
-    setFormRole(u.role);
-    setFormProvince(u.province || '');
-    setFormStatus(u.status);
+    setFormName(u.full_name); setFormEmail(u.email); setFormPhone(u.phone || '');
+    setFormRole(u.role); setFormProvince(u.province || ''); setFormStatus(u.status);
+    setFormKtp((u as any).ktp || ''); setFormKk((u as any).kk || '');
     setAddDialogOpen(true);
   }
 
@@ -103,11 +103,19 @@ export default function UsersPage() {
     toast({ title: `${u.full_name} ditolak` }); loadUsers();
   }
 
+  function validateKtpKk(): boolean {
+    let valid = true;
+    if (formKtp && !/^\d{16}$/.test(formKtp)) { setKtpError('Nomor KTP harus tepat 16 digit'); valid = false; } else setKtpError('');
+    if (formKk && !/^\d{16}$/.test(formKk)) { setKkError('Nomor KK harus tepat 16 digit'); valid = false; } else setKkError('');
+    return valid;
+  }
+
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
+    if (!validateKtpKk()) return;
     setSubmitting(true);
     const { data, error } = await supabase.functions.invoke('create-user', {
-      body: { email: formEmail, password: formPassword, full_name: formName, phone: formPhone, role: formRole, province: formProvince, status: formStatus },
+      body: { email: formEmail, password: formPassword, full_name: formName, phone: formPhone, role: formRole, province: formProvince, status: formStatus, ktp: formKtp || null, kk: formKk || null },
     });
     if (error || data?.error) {
       toast({ title: 'Gagal', description: data?.error || error?.message, variant: 'destructive' });
@@ -121,8 +129,9 @@ export default function UsersPage() {
   async function handleEdit(e: React.FormEvent) {
     e.preventDefault();
     if (!editUser) return;
+    if (!validateKtpKk()) return;
     setSubmitting(true);
-    const payload: any = { full_name: formName, phone: formPhone || null, role: formRole as any, province: formProvince || null, status: formStatus as any };
+    const payload: any = { full_name: formName, phone: formPhone || null, role: formRole as any, province: formProvince || null, status: formStatus as any, ktp: formKtp || null, kk: formKk || null };
     const { error } = await supabase.from('profiles').update(payload).eq('id', editUser.id);
     if (error) { toast({ title: 'Gagal', description: error.message, variant: 'destructive' }); }
     else {
@@ -136,7 +145,7 @@ export default function UsersPage() {
     setSubmitting(false);
   }
 
-  const availableRoles = [['dpp', 'DPP'], ['dpw', 'DPW'], ['peternak', 'Anggota']];
+  const availableRoles = [['dpp', 'DPP'], ['dpd', 'DPD'], ['dpw', 'DPW'], ['peternak', 'Anggota']];
 
   return (
     <div className="space-y-6">
@@ -156,6 +165,16 @@ export default function UsersPage() {
               <div><Label>Email</Label><Input type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} required disabled={!!editUser} className={editUser ? 'bg-muted' : ''} /></div>
               {!editUser && <div><Label>Kata Sandi</Label><Input type="password" value={formPassword} onChange={e => setFormPassword(e.target.value)} required minLength={6} /></div>}
               <div><Label>No. Telepon</Label><Input value={formPhone} onChange={e => setFormPhone(e.target.value)} /></div>
+              <div>
+                <Label>No. KTP</Label>
+                <Input value={formKtp} onChange={e => { setFormKtp(e.target.value.replace(/\D/g, '').slice(0, 16)); setKtpError(''); }} placeholder="16 digit" maxLength={16} />
+                {ktpError && <p className="text-xs text-destructive mt-1">{ktpError}</p>}
+              </div>
+              <div>
+                <Label>No. KK</Label>
+                <Input value={formKk} onChange={e => { setFormKk(e.target.value.replace(/\D/g, '').slice(0, 16)); setKkError(''); }} placeholder="16 digit" maxLength={16} />
+                {kkError && <p className="text-xs text-destructive mt-1">{kkError}</p>}
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>Jabatan</Label>
@@ -178,8 +197,7 @@ export default function UsersPage() {
               <div>
                 <Label>Provinsi</Label>
                 <Select value={formProvince} onValueChange={(val) => {
-                  setFormProvince(val);
-                  setFormCity(''); setFormDistrict(''); setFormVillage('');
+                  setFormProvince(val); setFormCity(''); setFormDistrict(''); setFormVillage('');
                   const prov = provinces.find(p => p.name === val);
                   if (prov) fetchCities(prov.id);
                 }}>
@@ -188,36 +206,23 @@ export default function UsersPage() {
                 </Select>
               </div>
               {formProvince && (
-                <div>
-                  <Label>Kota/Kabupaten</Label>
-                  <Select value={formCity} onValueChange={(val) => {
-                    setFormCity(val);
-                    setFormDistrict(''); setFormVillage('');
-                    const city = cities.find(c => c.name === val);
-                    if (city) fetchDistricts(city.id);
-                  }}>
+                <div><Label>Kota/Kabupaten</Label>
+                  <Select value={formCity} onValueChange={(val) => { setFormCity(val); setFormDistrict(''); setFormVillage(''); const city = cities.find(c => c.name === val); if (city) fetchDistricts(city.id); }}>
                     <SelectTrigger><SelectValue placeholder="Pilih kota" /></SelectTrigger>
                     <SelectContent>{cities.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
               )}
               {formCity && (
-                <div>
-                  <Label>Kecamatan</Label>
-                  <Select value={formDistrict} onValueChange={(val) => {
-                    setFormDistrict(val);
-                    setFormVillage('');
-                    const dist = districts.find(d => d.name === val);
-                    if (dist) fetchVillages(dist.id);
-                  }}>
+                <div><Label>Kecamatan</Label>
+                  <Select value={formDistrict} onValueChange={(val) => { setFormDistrict(val); setFormVillage(''); const dist = districts.find(d => d.name === val); if (dist) fetchVillages(dist.id); }}>
                     <SelectTrigger><SelectValue placeholder="Pilih kecamatan" /></SelectTrigger>
                     <SelectContent>{districts.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
               )}
               {formDistrict && (
-                <div>
-                  <Label>Kelurahan</Label>
+                <div><Label>Kelurahan</Label>
                   <Select value={formVillage} onValueChange={setFormVillage}>
                     <SelectTrigger><SelectValue placeholder="Pilih kelurahan" /></SelectTrigger>
                     <SelectContent>{villages.map(v => <SelectItem key={v.id} value={v.name}>{v.name}</SelectItem>)}</SelectContent>
@@ -244,10 +249,10 @@ export default function UsersPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">User ID</th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Nama</th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Jabatan</th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Email</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">KTP</th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Alamat</th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Peternakan</th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
@@ -257,10 +262,10 @@ export default function UsersPage() {
                 <tbody>
                   {users.map(u => (
                     <tr key={u.id} className="border-b last:border-0">
-                      <td className="px-4 py-3 text-xs text-muted-foreground font-mono">{u.id.substring(0, 8)}...</td>
                       <td className="px-4 py-3 font-medium text-foreground">{u.full_name}</td>
                       <td className="px-4 py-3"><span className="status-badge-pending">{ROLE_LABELS[u.role] || u.role}</span></td>
                       <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
+                      <td className="px-4 py-3 text-muted-foreground text-xs font-mono">{(u as any).ktp || '-'}</td>
                       <td className="px-4 py-3 text-muted-foreground text-xs">{u.province || '-'}</td>
                       <td className="px-4 py-3 text-center font-medium text-foreground">{farmCounts[u.id] || 0}</td>
                       <td className="px-4 py-3">
@@ -272,17 +277,11 @@ export default function UsersPage() {
                         <div className="flex gap-1">
                           {u.status === 'pending' && (
                             <>
-                              <Button size="icon" variant="ghost" className="h-8 w-8 text-success" onClick={() => handleApprove(u)} title="Setujui">
-                                <CheckCircle className="h-4 w-4" />
-                              </Button>
-                              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleReject(u)} title="Tolak">
-                                <XCircle className="h-4 w-4" />
-                              </Button>
+                              <Button size="icon" variant="ghost" className="h-8 w-8 text-success" onClick={() => handleApprove(u)} title="Setujui"><CheckCircle className="h-4 w-4" /></Button>
+                              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleReject(u)} title="Tolak"><XCircle className="h-4 w-4" /></Button>
                             </>
                           )}
-                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(u)} title="Edit">
-                            <Pencil className="h-4 w-4" />
-                          </Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(u)} title="Edit"><Pencil className="h-4 w-4" /></Button>
                         </div>
                       </td>
                     </tr>

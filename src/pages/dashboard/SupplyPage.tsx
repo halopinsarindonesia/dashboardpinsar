@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -23,6 +22,8 @@ const FARM_TYPE_LABELS: Record<string, string> = {
   other_cut: 'Ayam Pejantan', other_egg: 'Bebek', other_mixed: 'Puyuh',
 };
 
+const LAYER_TYPES = ['layer', 'other_egg'];
+
 type FlowStep = 'select-farm' | 'select-type' | 'form-masuk' | 'form-keluar';
 type InputType = 'masuk' | 'keluar';
 
@@ -36,7 +37,6 @@ export default function SupplyPage() {
   const [submitting, setSubmitting] = useState(false);
   const [editRecord, setEditRecord] = useState<any>(null);
 
-  // Flow state
   const [step, setStep] = useState<FlowStep>('select-farm');
   const [selectedFarmId, setSelectedFarmId] = useState('');
   const [inputType, setInputType] = useState<InputType | ''>('');
@@ -44,12 +44,15 @@ export default function SupplyPage() {
 
   // Form fields
   const [ayamMasuk, setAyamMasuk] = useState('');
+  const [telurTerjual, setTelurTerjual] = useState('');
   const [ayamTerjual, setAyamTerjual] = useState('');
   const [kematian, setKematian] = useState('');
+  const [hargaJualTelur, setHargaJualTelur] = useState('');
+  const [hargaJualAyam, setHargaJualAyam] = useState('');
   const [hargaJual, setHargaJual] = useState('');
 
   const selectedFarm = useMemo(() => farms.find(f => f.id === selectedFarmId), [farms, selectedFarmId]);
-  const isEggType = selectedFarm && ['layer', 'other_egg'].includes(selectedFarm.farm_type);
+  const isLayerType = selectedFarm && LAYER_TYPES.includes(selectedFarm.farm_type);
 
   useEffect(() => { loadData(); }, [user, profile]);
 
@@ -81,9 +84,7 @@ export default function SupplyPage() {
       if (memberFarmIds.length > 0) {
         recordsQuery = recordsQuery.in('farm_id', memberFarmIds);
       } else {
-        setRecords([]);
-        setLoading(false);
-        return;
+        setRecords([]); setLoading(false); return;
       }
     }
 
@@ -95,13 +96,32 @@ export default function SupplyPage() {
   async function calcPopulation(farmId: string) {
     const farm = farms.find(f => f.id === farmId);
     if (!farm) return;
+    const isLayer = LAYER_TYPES.includes(farm.farm_type);
+
     const { data: allRecords } = await supabase.from('supply_records')
-      .select('broiler_input, broiler_sold, broiler_death')
+      .select('broiler_input, broiler_sold, broiler_death, layer_input, layer_death')
       .eq('farm_id', farmId);
+
     const recs = allRecords ?? [];
-    const pop = (farm.broiler_initial_population ?? 0)
-      + recs.reduce((s, r) => s + (r.broiler_input ?? 0) - (r.broiler_sold ?? 0) - (r.broiler_death ?? 0), 0);
-    setCurrentPop(Math.max(0, pop));
+
+    if (isLayer) {
+      // Layer: pop = initial + layer_input - layer_sold - layer_death
+      // layer_sold is a new column; for old records it may be 0
+      const { data: soldData } = await supabase.from('supply_records')
+        .select('layer_sold')
+        .eq('farm_id', farmId);
+      const layerSoldTotal = (soldData ?? []).reduce((s: number, r: any) => s + ((r as any).layer_sold ?? 0), 0);
+
+      const pop = (farm.layer_initial_population ?? farm.broiler_initial_population ?? 0)
+        + recs.reduce((s, r) => s + (r.layer_input ?? 0), 0)
+        - layerSoldTotal
+        - recs.reduce((s, r) => s + (r.layer_death ?? 0), 0);
+      setCurrentPop(Math.max(0, pop));
+    } else {
+      const pop = (farm.broiler_initial_population ?? 0)
+        + recs.reduce((s, r) => s + (r.broiler_input ?? 0) - (r.broiler_sold ?? 0) - (r.broiler_death ?? 0), 0);
+      setCurrentPop(Math.max(0, pop));
+    }
   }
 
   useEffect(() => { if (selectedFarmId) calcPopulation(selectedFarmId); }, [selectedFarmId, farms]);
@@ -109,24 +129,45 @@ export default function SupplyPage() {
   function resetForm() {
     setStep('select-farm');
     setSelectedFarmId(''); setEditRecord(null); setInputType('');
-    setAyamMasuk(''); setAyamTerjual(''); setKematian(''); setHargaJual('');
+    setAyamMasuk(''); setTelurTerjual(''); setAyamTerjual(''); setKematian('');
+    setHargaJualTelur(''); setHargaJualAyam(''); setHargaJual('');
     setCurrentPop(0);
   }
 
   function openEdit(record: any) {
     setEditRecord(record);
     setSelectedFarmId(record.farm_id);
-    const isMasuk = (record.broiler_input ?? 0) > 0 && (record.broiler_sold ?? 0) === 0 && (record.broiler_death ?? 0) === 0;
-    if (isMasuk) {
-      setInputType('masuk');
-      setAyamMasuk(String(record.broiler_input ?? ''));
-      setStep('form-masuk');
+    const farmType = record.farms?.farm_type;
+    const isLayer = farmType && LAYER_TYPES.includes(farmType);
+
+    if (isLayer) {
+      const isMasuk = (record.layer_input ?? 0) > 0;
+      if (isMasuk) {
+        setInputType('masuk');
+        setAyamMasuk(String(record.layer_input ?? ''));
+        setStep('form-masuk');
+      } else {
+        setInputType('keluar');
+        setTelurTerjual(String(record.layer_egg_production ?? ''));
+        setAyamTerjual(String((record as any).layer_sold ?? ''));
+        setKematian(String(record.layer_death ?? ''));
+        setHargaJualTelur(String(record.layer_egg_price_per_kg ?? ''));
+        setHargaJualAyam(String((record as any).layer_price_per_unit ?? ''));
+        setStep('form-keluar');
+      }
     } else {
-      setInputType('keluar');
-      setAyamTerjual(String(record.broiler_sold ?? ''));
-      setKematian(String(record.broiler_death ?? ''));
-      setHargaJual(String(record.broiler_price_per_kg ?? ''));
-      setStep('form-keluar');
+      const isMasuk = (record.broiler_input ?? 0) > 0 && (record.broiler_sold ?? 0) === 0 && (record.broiler_death ?? 0) === 0;
+      if (isMasuk) {
+        setInputType('masuk');
+        setAyamMasuk(String(record.broiler_input ?? ''));
+        setStep('form-masuk');
+      } else {
+        setInputType('keluar');
+        setAyamTerjual(String(record.broiler_sold ?? ''));
+        setKematian(String(record.broiler_death ?? ''));
+        setHargaJual(String(record.broiler_price_per_kg ?? ''));
+        setStep('form-keluar');
+      }
     }
     setDialogOpen(true);
   }
@@ -147,22 +188,24 @@ export default function SupplyPage() {
     setSubmitting(true);
 
     const masuk = Number(ayamMasuk) || 0;
-    const kapasitas = selectedFarm?.kapasitas_kandang ?? 0;
 
-    // Validation: population must be 0 to add new chickens
-    if (!editRecord && currentPop > 0) {
+    // For non-layer types: population must be 0 to add
+    if (!editRecord && !isLayerType && currentPop > 0) {
       toast({ title: 'Validasi gagal', description: 'Masih ada populasi ayam, harap update ayam keluar hingga populasi 0 baru menambahkan ayam masuk', variant: 'destructive' });
       setSubmitting(false); return;
     }
 
-
     const newPop = currentPop + masuk;
+
     const payload: any = {
       farm_id: selectedFarmId, submitted_by: user.id,
-      broiler_population: newPop, broiler_input: masuk,
+      broiler_population: isLayerType ? 0 : newPop,
+      broiler_input: isLayerType ? 0 : masuk,
       broiler_sold: 0, broiler_death: 0, broiler_price_per_kg: null,
-      layer_population: 0, layer_input: 0, layer_death: 0,
-      layer_egg_production: 0, layer_egg_price_per_kg: null,
+      layer_population: isLayerType ? newPop : 0,
+      layer_input: isLayerType ? masuk : 0,
+      layer_death: 0, layer_egg_production: 0, layer_egg_price_per_kg: null,
+      layer_sold: 0, layer_price_per_unit: null,
     };
 
     await saveRecord(payload, newPop);
@@ -173,26 +216,53 @@ export default function SupplyPage() {
     if (!selectedFarmId || !user) return;
     setSubmitting(true);
 
-    const sold = Number(ayamTerjual) || 0;
-    const death = Number(kematian) || 0;
-    const price = Number(hargaJual) || null;
+    if (isLayerType) {
+      // Layer type: telur terjual doesn't affect pop, ayam terjual + kematian does
+      const soldAyam = Number(ayamTerjual) || 0;
+      const death = Number(kematian) || 0;
+      const soldTelur = Number(telurTerjual) || 0;
+      const priceTelur = Number(hargaJualTelur) || null;
+      const priceAyam = Number(hargaJualAyam) || null;
 
-    if (sold + death > currentPop) {
-      toast({ title: 'Validasi gagal', description: 'Ayam terjual + kematian tidak boleh melebihi populasi saat ini.', variant: 'destructive' });
-      setSubmitting(false); return;
+      if (soldAyam + death > currentPop) {
+        toast({ title: 'Validasi gagal', description: 'Ayam terjual + kematian tidak boleh melebihi populasi saat ini.', variant: 'destructive' });
+        setSubmitting(false); return;
+      }
+
+      const newPop = currentPop - soldAyam - death;
+      const payload: any = {
+        farm_id: selectedFarmId, submitted_by: user.id,
+        broiler_population: 0, broiler_input: 0, broiler_sold: 0, broiler_death: 0, broiler_price_per_kg: null,
+        layer_population: newPop, layer_input: 0,
+        layer_death: death,
+        layer_egg_production: soldTelur,
+        layer_egg_price_per_kg: priceTelur,
+        layer_sold: soldAyam,
+        layer_price_per_unit: priceAyam,
+      };
+      await saveRecord(payload, newPop);
+    } else {
+      // Non-layer type
+      const sold = Number(ayamTerjual) || 0;
+      const death = Number(kematian) || 0;
+      const price = Number(hargaJual) || null;
+
+      if (sold + death > currentPop) {
+        toast({ title: 'Validasi gagal', description: 'Ayam terjual + kematian tidak boleh melebihi populasi saat ini.', variant: 'destructive' });
+        setSubmitting(false); return;
+      }
+
+      const newPop = currentPop - sold - death;
+      const payload: any = {
+        farm_id: selectedFarmId, submitted_by: user.id,
+        broiler_population: newPop, broiler_input: 0,
+        broiler_sold: sold, broiler_death: death, broiler_price_per_kg: price,
+        layer_population: 0, layer_input: 0, layer_death: 0,
+        layer_egg_production: 0, layer_egg_price_per_kg: null,
+        layer_sold: 0, layer_price_per_unit: null,
+      };
+      await saveRecord(payload, newPop);
     }
-
-    const newPop = currentPop - sold - death;
-    const payload: any = {
-      farm_id: selectedFarmId, submitted_by: user.id,
-      broiler_population: newPop, broiler_input: 0,
-      broiler_sold: sold, broiler_death: death, broiler_price_per_kg: price,
-      layer_population: 0, layer_input: 0, layer_death: 0,
-      layer_egg_production: isEggType ? sold : 0,
-      layer_egg_price_per_kg: isEggType ? price : null,
-    };
-
-    await saveRecord(payload, newPop);
   }
 
   async function saveRecord(payload: any, newPop: number) {
@@ -203,8 +273,7 @@ export default function SupplyPage() {
         await logAudit({ action: 'edit', module: 'Produksi', userId: user!.id, userName: profile?.full_name, oldValue: editRecord, newValue: payload });
         toast({ title: 'Data produksi berhasil diperbarui' });
         if (newPop <= 0) {
-          await supabase.from('farms').update({ status: 'inactive' as any }).eq('id', selectedFarmId).eq('status', 'active');
-          toast({ title: 'Status diubah', description: 'Populasi habis, status peternakan diubah.' });
+          await supabase.from('farms').update({ status: 'prapasca' as any }).eq('id', selectedFarmId).eq('status', 'active');
         }
         resetForm(); setDialogOpen(false); loadData();
       }
@@ -220,8 +289,7 @@ export default function SupplyPage() {
         await logAudit({ action: 'create', module: 'Produksi', userId: user!.id, userName: profile?.full_name, newValue: payload });
         toast({ title: 'Berhasil', description: 'Data produksi berhasil disimpan.' });
         if (newPop <= 0) {
-          await supabase.from('farms').update({ status: 'inactive' as any }).eq('id', selectedFarmId).eq('status', 'active');
-          toast({ title: 'Status diubah', description: 'Populasi habis, status peternakan diubah.' });
+          await supabase.from('farms').update({ status: 'prapasca' as any }).eq('id', selectedFarmId).eq('status', 'active');
         }
         resetForm(); setDialogOpen(false); loadData();
       }
@@ -238,15 +306,11 @@ export default function SupplyPage() {
         <div className="space-y-4">
           <DialogHeader><DialogTitle className="font-display">Pilih Peternakan</DialogTitle></DialogHeader>
           {farms.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Belum ada peternakan aktif.</p>
+            <p className="text-sm text-muted-foreground">Belum ada peternakan.</p>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto">
               {farms.map(f => (
-                <button
-                  key={f.id}
-                  onClick={() => handleFarmSelected(f.id)}
-                  className="w-full rounded-lg border p-4 text-left transition-colors hover:bg-accent"
-                >
+                <button key={f.id} onClick={() => handleFarmSelected(f.id)} className="w-full rounded-lg border p-4 text-left transition-colors hover:bg-accent">
                   <p className="font-medium text-foreground">{f.farm_code} — {f.name}</p>
                   <p className="text-sm text-muted-foreground">{FARM_TYPE_LABELS[f.farm_type] || f.farm_type} • {f.province}</p>
                 </button>
@@ -264,32 +328,26 @@ export default function SupplyPage() {
           {selectedFarm && (
             <div className="rounded-lg bg-muted p-3 text-sm">
               <p className="font-medium text-foreground">{selectedFarm.farm_code} — {selectedFarm.name}</p>
-              <p className="text-muted-foreground">{FARM_TYPE_LABELS[selectedFarm.farm_type] || selectedFarm.farm_type} • {selectedFarm.province}</p>
+              <p className="text-muted-foreground">{FARM_TYPE_LABELS[selectedFarm.farm_type]} • Populasi: {formatNum(currentPop)}</p>
             </div>
           )}
           <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => handleTypeSelected('masuk')}
-              className="flex flex-col items-center gap-3 rounded-lg border-2 border-dashed p-6 transition-colors hover:border-primary hover:bg-primary/5"
-            >
+            <button onClick={() => handleTypeSelected('masuk')} className="flex flex-col items-center gap-3 rounded-lg border-2 border-dashed p-6 transition-colors hover:border-primary hover:bg-primary/5">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-700">
                 <ArrowDownToLine className="h-6 w-6" />
               </div>
               <div className="text-center">
                 <p className="font-semibold text-foreground">Ayam Masuk</p>
-                <p className="text-xs text-muted-foreground">Tambah populasi baru</p>
+                <p className="text-xs text-muted-foreground">Tambah populasi</p>
               </div>
             </button>
-            <button
-              onClick={() => handleTypeSelected('keluar')}
-              className="flex flex-col items-center gap-3 rounded-lg border-2 border-dashed p-6 transition-colors hover:border-primary hover:bg-primary/5"
-            >
+            <button onClick={() => handleTypeSelected('keluar')} className="flex flex-col items-center gap-3 rounded-lg border-2 border-dashed p-6 transition-colors hover:border-primary hover:bg-primary/5">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 text-orange-700">
                 <ArrowUpFromLine className="h-6 w-6" />
               </div>
               <div className="text-center">
                 <p className="font-semibold text-foreground">Ayam Keluar</p>
-                <p className="text-xs text-muted-foreground">Terjual atau kematian</p>
+                <p className="text-xs text-muted-foreground">Terjual / kematian</p>
               </div>
             </button>
           </div>
@@ -305,24 +363,15 @@ export default function SupplyPage() {
           {selectedFarm && (
             <div className="rounded-lg bg-muted p-3 text-sm">
               <p className="font-medium text-foreground">{selectedFarm.farm_code} — {selectedFarm.name}</p>
-              <p className="text-muted-foreground">{FARM_TYPE_LABELS[selectedFarm.farm_type] || selectedFarm.farm_type}</p>
+              <p className="text-muted-foreground">{FARM_TYPE_LABELS[selectedFarm.farm_type]}</p>
             </div>
           )}
           <form onSubmit={handleSubmitMasuk} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-muted-foreground">Tipe Ayam</Label>
-                <Input value={FARM_TYPE_LABELS[selectedFarm?.farm_type ?? ''] || ''} disabled className="bg-muted" />
-              </div>
-              <div>
-                <Label className="text-muted-foreground">Kapasitas Kandang</Label>
-                <Input value={formatNum(selectedFarm?.kapasitas_kandang ?? 0)} disabled className="bg-muted" />
-              </div>
+              <div><Label className="text-muted-foreground">Tipe</Label><Input value={FARM_TYPE_LABELS[selectedFarm?.farm_type ?? ''] || ''} disabled className="bg-muted" /></div>
+              <div><Label className="text-muted-foreground">Kapasitas</Label><Input value={formatNum(selectedFarm?.kapasitas_kandang ?? 0)} disabled className="bg-muted" /></div>
             </div>
-            <div>
-              <Label className="text-muted-foreground">Populasi Sekarang</Label>
-              <Input value={formatNum(currentPop)} disabled className="bg-muted" />
-            </div>
+            <div><Label className="text-muted-foreground">Populasi Sekarang</Label><Input value={formatNum(currentPop)} disabled className="bg-muted" /></div>
             <div>
               <Label>Ayam Masuk <span className="text-destructive">*</span></Label>
               <Input type="number" min="1" required value={ayamMasuk} onChange={e => setAyamMasuk(e.target.value)} placeholder="Jumlah ayam masuk" />
@@ -345,39 +394,58 @@ export default function SupplyPage() {
           {selectedFarm && (
             <div className="rounded-lg bg-muted p-3 text-sm">
               <p className="font-medium text-foreground">{selectedFarm.farm_code} — {selectedFarm.name}</p>
-              <p className="text-muted-foreground">{FARM_TYPE_LABELS[selectedFarm?.farm_type ?? ''] || selectedFarm?.farm_type}</p>
+              <p className="text-muted-foreground">{FARM_TYPE_LABELS[selectedFarm?.farm_type ?? '']}</p>
             </div>
           )}
           <form onSubmit={handleSubmitKeluar} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-muted-foreground">Tipe Ayam</Label>
-                <Input value={FARM_TYPE_LABELS[selectedFarm?.farm_type ?? ''] || ''} disabled className="bg-muted" />
-              </div>
-              <div>
-                <Label className="text-muted-foreground">Kapasitas Kandang</Label>
-                <Input value={formatNum(selectedFarm?.kapasitas_kandang ?? 0)} disabled className="bg-muted" />
-              </div>
+              <div><Label className="text-muted-foreground">Tipe</Label><Input value={FARM_TYPE_LABELS[selectedFarm?.farm_type ?? ''] || ''} disabled className="bg-muted" /></div>
+              <div><Label className="text-muted-foreground">Kapasitas</Label><Input value={formatNum(selectedFarm?.kapasitas_kandang ?? 0)} disabled className="bg-muted" /></div>
             </div>
-            <div>
-              <Label className="text-muted-foreground">Populasi Sekarang</Label>
-              <Input value={formatNum(currentPop)} disabled className="bg-muted" />
-            </div>
-            <div>
-              <Label>{isEggType ? 'Telur Terjual (kg)' : 'Ayam Terjual'}</Label>
-              <Input type="number" min="0" value={ayamTerjual} onChange={e => setAyamTerjual(e.target.value)} placeholder={isEggType ? 'Jumlah telur terjual (kg)' : 'Jumlah ayam terjual'} />
-            </div>
-            <div>
-              <Label>Kematian Ayam</Label>
-              <Input type="number" min="0" value={kematian} onChange={e => setKematian(e.target.value)} placeholder="Jumlah kematian" />
-            </div>
-            <div>
-              <Label>Harga Jual (per kg, Rp)</Label>
-              <Input type="number" min="0" value={hargaJual} onChange={e => setHargaJual(e.target.value)} placeholder="Harga per kg" />
-            </div>
+            <div><Label className="text-muted-foreground">Populasi Sekarang</Label><Input value={formatNum(currentPop)} disabled className="bg-muted" /></div>
+
+            {isLayerType ? (
+              <>
+                <div>
+                  <Label>Telur Terjual (kg)</Label>
+                  <Input type="number" min="0" value={telurTerjual} onChange={e => setTelurTerjual(e.target.value)} placeholder="Jumlah telur terjual (kg)" />
+                </div>
+                <div>
+                  <Label>Ayam Terjual</Label>
+                  <Input type="number" min="0" value={ayamTerjual} onChange={e => setAyamTerjual(e.target.value)} placeholder="Jumlah ayam terjual" />
+                </div>
+                <div>
+                  <Label>Kematian Ayam</Label>
+                  <Input type="number" min="0" value={kematian} onChange={e => setKematian(e.target.value)} placeholder="Jumlah kematian" />
+                </div>
+                <div>
+                  <Label>Harga Jual Telur (per kg, Rp)</Label>
+                  <Input type="number" min="0" value={hargaJualTelur} onChange={e => setHargaJualTelur(e.target.value)} placeholder="Harga telur per kg" />
+                </div>
+                <div>
+                  <Label>Harga Jual Ayam (per ekor, Rp)</Label>
+                  <Input type="number" min="0" value={hargaJualAyam} onChange={e => setHargaJualAyam(e.target.value)} placeholder="Harga ayam per ekor" />
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <Label>Ayam Terjual</Label>
+                  <Input type="number" min="0" value={ayamTerjual} onChange={e => setAyamTerjual(e.target.value)} placeholder="Jumlah ayam terjual" />
+                </div>
+                <div>
+                  <Label>Kematian Ayam</Label>
+                  <Input type="number" min="0" value={kematian} onChange={e => setKematian(e.target.value)} placeholder="Jumlah kematian" />
+                </div>
+                <div>
+                  <Label>Harga Jual (per kg, Rp)</Label>
+                  <Input type="number" min="0" value={hargaJual} onChange={e => setHargaJual(e.target.value)} placeholder="Harga per kg" />
+                </div>
+              </>
+            )}
             <div className="flex gap-2">
               {!editRecord && <Button type="button" variant="ghost" className="flex-1" onClick={() => setStep('select-type')}>← Kembali</Button>}
-              <Button type="submit" className="flex-1" disabled={submitting || (!ayamTerjual && !kematian)}>
+              <Button type="submit" className="flex-1" disabled={submitting || (isLayerType ? (!telurTerjual && !ayamTerjual && !kematian) : (!ayamTerjual && !kematian))}>
                 {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...</> : 'Simpan'}
               </Button>
             </div>
@@ -418,39 +486,48 @@ export default function SupplyPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Tanggal</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Peternakan</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Tipe</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Jenis</th>
-                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">Populasi</th>
-                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">Masuk</th>
-                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">Terjual</th>
-                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">Kematian</th>
-                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">Harga/kg</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Aksi</th>
+                    <th className="px-3 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Tanggal</th>
+                    <th className="px-3 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Peternakan</th>
+                    <th className="px-3 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Tipe</th>
+                    <th className="px-3 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Jenis</th>
+                    <th className="px-3 py-3 text-right font-medium text-muted-foreground whitespace-nowrap">Populasi</th>
+                    <th className="px-3 py-3 text-right font-medium text-muted-foreground whitespace-nowrap">Masuk</th>
+                    <th className="px-3 py-3 text-right font-medium text-muted-foreground whitespace-nowrap">Terjual</th>
+                    <th className="px-3 py-3 text-right font-medium text-muted-foreground whitespace-nowrap">Kematian</th>
+                    <th className="px-3 py-3 text-right font-medium text-muted-foreground whitespace-nowrap">Harga</th>
+                    <th className="px-3 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
                   {records.map((r: any) => {
                     const farm = r.farms;
-                    const isMasuk = (r.broiler_input ?? 0) > 0 && (r.broiler_sold ?? 0) === 0 && (r.broiler_death ?? 0) === 0;
+                    const isLayer = farm && LAYER_TYPES.includes(farm.farm_type);
+                    const pop = isLayer ? r.layer_population : r.broiler_population;
+                    const masuk = isLayer ? r.layer_input : r.broiler_input;
+                    const terjual = isLayer ? ((r as any).layer_sold ?? 0) : r.broiler_sold;
+                    const death = isLayer ? r.layer_death : r.broiler_death;
+                    const price = isLayer ? r.layer_egg_price_per_kg : r.broiler_price_per_kg;
+                    const isMasuk = masuk > 0 && terjual === 0 && death === 0;
+
                     return (
                       <tr key={r.id} className="border-b last:border-0">
-                        <td className="px-4 py-3 text-muted-foreground">{new Date(r.record_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                        <td className="px-4 py-3 font-medium text-foreground">{farm?.name ?? '-'}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{farm ? (FARM_TYPE_LABELS[farm.farm_type] || farm.farm_type) : '-'}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">{new Date(r.record_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                        <td className="px-3 py-3 font-medium text-foreground whitespace-nowrap">{farm?.name ?? '-'}</td>
+                        <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">{farm ? (FARM_TYPE_LABELS[farm.farm_type] || farm.farm_type) : '-'}</td>
+                        <td className="px-3 py-3 whitespace-nowrap">
                           <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${isMasuk ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
                             {isMasuk ? <ArrowDownToLine className="h-3 w-3" /> : <ArrowUpFromLine className="h-3 w-3" />}
                             {isMasuk ? 'Masuk' : 'Keluar'}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-right text-foreground">{formatNum(r.broiler_population)}</td>
-                        <td className="px-4 py-3 text-right text-foreground">{formatNum(r.broiler_input)}</td>
-                        <td className="px-4 py-3 text-right text-foreground">{formatNum(r.broiler_sold)}</td>
-                        <td className="px-4 py-3 text-right text-foreground">{formatNum(r.broiler_death)}</td>
-                        <td className="px-4 py-3 text-right font-medium text-foreground">{formatPrice(r.broiler_price_per_kg)}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-3 text-right text-foreground whitespace-nowrap">{formatNum(pop)}</td>
+                        <td className="px-3 py-3 text-right text-foreground whitespace-nowrap">{formatNum(masuk)}</td>
+                        <td className="px-3 py-3 text-right text-foreground whitespace-nowrap">
+                          {isLayer ? `${formatNum(r.layer_egg_production)} kg / ${formatNum(terjual)} ekor` : formatNum(terjual)}
+                        </td>
+                        <td className="px-3 py-3 text-right text-foreground whitespace-nowrap">{formatNum(death)}</td>
+                        <td className="px-3 py-3 text-right font-medium text-foreground whitespace-nowrap">{formatPrice(price)}</td>
+                        <td className="px-3 py-3 whitespace-nowrap">
                           <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
                         </td>
                       </tr>
