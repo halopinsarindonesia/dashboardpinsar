@@ -84,6 +84,9 @@ export default function DashboardOverview() {
   const [populationStats, setPopulationStats] = useState<{ total: number; byType: Record<string, number> }>({ total: 0, byType: {} });
   const [submittedToday, setSubmittedToday] = useState(0);
   const [totalActiveFarms, setTotalActiveFarms] = useState(0);
+  const [priceStats, setPriceStats] = useState<{ byType: Record<string, { avgPrice: number; count: number }>; total: { avgBroiler: number; avgEgg: number } }>({
+    byType: {}, total: { avgBroiler: 0, avgEgg: 0 },
+  });
 
   const loadData = useCallback(async () => {
     setLoading(true);
