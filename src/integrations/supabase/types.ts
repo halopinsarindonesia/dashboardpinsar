@@ -179,6 +179,33 @@ export type Database = {
         }
         Relationships: []
       }
+      cms_gallery: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string
+          is_active: boolean | null
+          sort_order: number | null
+          title: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url: string
+          is_active?: boolean | null
+          sort_order?: number | null
+          title?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string
+          is_active?: boolean | null
+          sort_order?: number | null
+          title?: string | null
+        }
+        Relationships: []
+      }
       cms_partners: {
         Row: {
           created_at: string
@@ -377,6 +404,8 @@ export type Database = {
           full_name: string
           house_address: string | null
           id: string
+          kk: string | null
+          ktp: string | null
           phone: string | null
           province: string | null
           role: Database["public"]["Enums"]["app_role"]
@@ -390,6 +419,8 @@ export type Database = {
           full_name: string
           house_address?: string | null
           id: string
+          kk?: string | null
+          ktp?: string | null
           phone?: string | null
           province?: string | null
           role?: Database["public"]["Enums"]["app_role"]
@@ -403,6 +434,8 @@ export type Database = {
           full_name?: string
           house_address?: string | null
           id?: string
+          kk?: string | null
+          ktp?: string | null
           phone?: string | null
           province?: string | null
           role?: Database["public"]["Enums"]["app_role"]
@@ -427,6 +460,8 @@ export type Database = {
           layer_egg_production: number | null
           layer_input: number | null
           layer_population: number | null
+          layer_price_per_unit: number | null
+          layer_sold: number | null
           record_date: string
           submitted_by: string | null
           updated_at: string
@@ -445,6 +480,8 @@ export type Database = {
           layer_egg_production?: number | null
           layer_input?: number | null
           layer_population?: number | null
+          layer_price_per_unit?: number | null
+          layer_sold?: number | null
           record_date?: string
           submitted_by?: string | null
           updated_at?: string
@@ -463,6 +500,8 @@ export type Database = {
           layer_egg_production?: number | null
           layer_input?: number | null
           layer_population?: number | null
+          layer_price_per_unit?: number | null
+          layer_sold?: number | null
           record_date?: string
           submitted_by?: string | null
           updated_at?: string
@@ -511,7 +550,7 @@ export type Database = {
       is_superadmin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "dpp" | "dpw" | "peternak" | "superadmin"
+      app_role: "dpp" | "dpw" | "peternak" | "superadmin" | "dpd"
       audit_action: "create" | "edit" | "delete"
       farm_status: "active" | "renovation" | "inactive" | "prapasca"
       farm_type:
@@ -649,7 +688,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["dpp", "dpw", "peternak", "superadmin"],
+      app_role: ["dpp", "dpw", "peternak", "superadmin", "dpd"],
       audit_action: ["create", "edit", "delete"],
       farm_status: ["active", "renovation", "inactive", "prapasca"],
       farm_type: [
