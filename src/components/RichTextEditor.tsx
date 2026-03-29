@@ -19,6 +19,9 @@ export default function RichTextEditor({ content, onChange }: Props) {
         hardBreak: {
           keepMarks: true,
         },
+        paragraph: {
+          HTMLAttributes: {},
+        },
       }),
       Underline,
       Image.configure({
@@ -30,8 +33,12 @@ export default function RichTextEditor({ content, onChange }: Props) {
         height: 360,
       }),
     ],
-    content,
-    onUpdate: ({ editor }) => onChange(editor.getHTML()),
+    content: content || '<p></p>',
+    onUpdate: ({ editor }) => {
+      // Replace empty paragraphs with ones containing <br> so spacing is preserved on render
+      const html = editor.getHTML();
+      onChange(html);
+    },
   });
 
   useEffect(() => {

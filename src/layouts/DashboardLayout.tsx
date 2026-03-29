@@ -93,7 +93,7 @@ export default function DashboardLayout() {
     <div className="flex h-screen overflow-hidden">
       {/* Desktop Sidebar */}
       <aside className="hidden w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground lg:flex">
-        <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6">
+        <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6 bg-white">
           <Link to="/">
             <img src={logo} alt="PINSAR" className="h-8 w-8 object-contain cursor-pointer" />
           </Link>
@@ -106,7 +106,7 @@ export default function DashboardLayout() {
         <div className="fixed inset-0 z-[999] lg:hidden">
           <div className="absolute inset-0 bg-foreground/50" onClick={() => setMobileOpen(false)} />
           <aside className="relative flex h-full w-64 flex-col bg-sidebar text-sidebar-foreground z-[1000]">
-            <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-6">
+            <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-6 bg-white">
               <Link to="/" className="flex items-center gap-2">
                 <img src={logo} alt="PINSAR" className="h-8 w-8 object-contain" />
               </Link>

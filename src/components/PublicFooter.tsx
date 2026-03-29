@@ -22,31 +22,31 @@ export default function PublicFooter() {
   }, []);
 
   return (
-    <footer className="border-t bg-foreground text-primary-foreground">
+    <footer className="border-t bg-background text-foreground">
       <div className="container py-12">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <div className="flex items-center gap-2 mb-4">
               <img src={logo} alt="PINSAR" className="h-8 w-8 object-contain rounded" />
             </div>
-            <p className="text-sm text-primary-foreground/70">
+            <p className="text-sm text-muted-foreground">
               Perhimpunan Insan Perunggasan Rakyat Indonesia. Membangun industri perunggasan yang berkelanjutan.
             </p>
           </div>
 
           <div>
             <h4 className="font-display text-sm font-semibold mb-4">Navigasi</h4>
-            <ul className="space-y-2 text-sm text-primary-foreground/70">
-              <li><Link to="/" className="hover:text-primary-foreground">Beranda</Link></li>
-              <li><Link to="/harga" className="hover:text-primary-foreground">Harga</Link></li>
-              <li><Link to="/berita" className="hover:text-primary-foreground">Berita</Link></li>
-              <li><Link to="/tentang/sejarah" className="hover:text-primary-foreground">Tentang Kami</Link></li>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li><Link to="/" className="hover:text-foreground">Beranda</Link></li>
+              <li><Link to="/harga" className="hover:text-foreground">Harga</Link></li>
+              <li><Link to="/berita" className="hover:text-foreground">Berita</Link></li>
+              <li><Link to="/tentang/sejarah" className="hover:text-foreground">Tentang Kami</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="font-display text-sm font-semibold mb-4">Kontak</h4>
-            <ul className="space-y-2 text-sm text-primary-foreground/70">
+            <ul className="space-y-2 text-sm text-muted-foreground">
               <li>{contact?.email || 'info@pinsar.or.id'}</li>
               <li>{contact?.phone || '-'}</li>
               <li>{contact?.address || 'Jakarta, Indonesia'}</li>
@@ -55,19 +55,19 @@ export default function PublicFooter() {
 
           <div>
             <h4 className="font-display text-sm font-semibold mb-4">Ikuti Kami</h4>
-            <ul className="space-y-2 text-sm text-primary-foreground/70">
-              {contact?.facebook && <li><a href={contact.facebook} target="_blank" rel="noopener noreferrer" className="hover:text-primary-foreground">Facebook</a></li>}
-              {contact?.instagram && <li><a href={contact.instagram} target="_blank" rel="noopener noreferrer" className="hover:text-primary-foreground">Instagram</a></li>}
-              {contact?.twitter && <li><a href={contact.twitter} target="_blank" rel="noopener noreferrer" className="hover:text-primary-foreground">Twitter</a></li>}
-              {contact?.youtube && <li><a href={contact.youtube} target="_blank" rel="noopener noreferrer" className="hover:text-primary-foreground">YouTube</a></li>}
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              {contact?.facebook && <li><a href={contact.facebook} target="_blank" rel="noopener noreferrer" className="hover:text-foreground">Facebook</a></li>}
+              {contact?.instagram && <li><a href={contact.instagram} target="_blank" rel="noopener noreferrer" className="hover:text-foreground">Instagram</a></li>}
+              {contact?.twitter && <li><a href={contact.twitter} target="_blank" rel="noopener noreferrer" className="hover:text-foreground">Twitter</a></li>}
+              {contact?.youtube && <li><a href={contact.youtube} target="_blank" rel="noopener noreferrer" className="hover:text-foreground">YouTube</a></li>}
               {!contact?.facebook && !contact?.instagram && !contact?.twitter && !contact?.youtube && (
-                <li className="text-primary-foreground/50">Belum ada data</li>
+                <li className="text-muted-foreground/50">Belum ada data</li>
               )}
             </ul>
           </div>
         </div>
 
-        <div className="mt-8 border-t border-primary-foreground/20 pt-8 text-center text-sm text-primary-foreground/50">
+        <div className="mt-8 border-t border-border pt-8 text-center text-sm text-muted-foreground">
           © {new Date().getFullYear()} PINSAR Indonesia. Hak Cipta Dilindungi.
         </div>
       </div>

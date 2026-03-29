@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Badge } from '@/components/ui/badge';
 import { Loader2, BarChart3, Warehouse } from 'lucide-react';
 
 interface BlogItem {
@@ -57,14 +56,9 @@ export default function BeritaPage() {
                   )}
                 </div>
                 <div className="p-4 flex flex-col flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Badge variant={item.blog_type === 'news' ? 'default' : 'secondary'}>
-                      {item.blog_type === 'news' ? 'Berita' : 'Kegiatan'}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">{formatDate(item.publish_date || item.created_at)}</span>
-                  </div>
+                  <span className="text-xs text-muted-foreground mb-2">{formatDate(item.publish_date || item.created_at)}</span>
                   <h3 className="font-display text-base font-semibold text-foreground group-hover:text-primary transition-colors">{item.title}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground line-clamp-3 flex-1">{item.content}</p>
+                  <p className="mt-2 text-sm text-muted-foreground line-clamp-3 flex-1">{item.content?.replace(/<[^>]*>/g, '')}</p>
                 </div>
               </article>
             </Link>

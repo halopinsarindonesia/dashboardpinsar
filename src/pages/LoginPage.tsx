@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import logo from '@/assets/pinsar-logo.png';
+import loginBg from '@/assets/login-bg.png';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -66,12 +67,17 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen">
-      <div className="hidden w-1/2 bg-secondary lg:flex lg:flex-col lg:justify-center lg:px-16">
-        <img src={logo} alt="PINSAR Indonesia" className="mb-6 h-20 w-auto object-contain self-start" />
-        <h1 className="font-display text-3xl font-extrabold text-secondary-foreground">
+      <div className="hidden w-1/2 lg:flex lg:flex-col lg:justify-center lg:px-16 relative overflow-hidden"
+        style={{
+          backgroundImage: `linear-gradient(to right, hsl(0 0% 0% / 0.6), hsl(0 0% 0% / 0.4)), url(${loginBg})`,
+          backgroundSize: 'cover', backgroundPosition: 'center',
+        }}
+      >
+        <img src={logo} alt="PINSAR Indonesia" className="mb-6 h-20 w-auto object-contain self-start relative z-10" />
+        <h1 className="font-display text-3xl font-extrabold text-white relative z-10">
           PINSAR Indonesia
         </h1>
-        <p className="mt-4 text-lg text-secondary-foreground/70">
+        <p className="mt-4 text-lg text-white/80 relative z-10">
           Platform data perunggasan nasional. Pantau harga, kelola peternakan, dan laporkan suplai harian.
         </p>
       </div>
