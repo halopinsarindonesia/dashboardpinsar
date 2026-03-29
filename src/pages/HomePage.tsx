@@ -40,7 +40,7 @@ export default function HomePage() {
 
   useEffect(() => {
     supabase.from('cms_blogs').select('id, title, content, blog_type, publish_date, created_at, images')
-      .eq('status', 'active').order('publish_date', { ascending: false }).limit(5)
+      .eq('status', 'active').order('publish_date', { ascending: false }).limit(6)
       .then(({ data }) => setBlogs((data as BlogItem[]) ?? []));
 
     supabase.from('cms_partners').select('id, name, logo_url')
