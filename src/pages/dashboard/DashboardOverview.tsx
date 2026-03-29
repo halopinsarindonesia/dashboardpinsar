@@ -163,6 +163,59 @@ export default function DashboardOverview() {
     const todayFarms = new Set((todayRes.data ?? []).map((r: any) => r.farm_id));
     setSubmittedToday(todayFarms.size);
     setTotalActiveFarms(totalActive);
+
+    // ── Price aggregation (MTD) ──
+    const mtdStart = fmt(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+    const mtdEnd = fmt(new Date());
+    const { data: priceRecords } = await supabase.from('supply_records')
+      .select('farm_id, broiler_price_per_kg, layer_egg_price_per_kg, layer_price_per_unit')
+      .gte('record_date', mtdStart)
+      .lte('record_date', mtdEnd);
+
+    const farmTypeMap: Record<string, string> = {};
+    allFarms.forEach((f: any) => { farmTypeMap[f.id] = f.farm_type; });
+
+    const priceByType: Record<string, { totalBroiler: number; countBroiler: number; totalEgg: number; countEgg: number; totalLayerUnit: number; countLayerUnit: number }> = {};
+    FARM_TYPES.forEach(t => { priceByType[t] = { totalBroiler: 0, countBroiler: 0, totalEgg: 0, countEgg: 0, totalLayerUnit: 0, countLayerUnit: 0 }; });
+
+    let gBroilerTotal = 0, gBroilerCount = 0, gEggTotal = 0, gEggCount = 0;
+    (priceRecords ?? []).forEach((r: any) => {
+      const ft = farmTypeMap[r.farm_id];
+      if (!ft || !priceByType[ft]) return;
+      if (r.broiler_price_per_kg && r.broiler_price_per_kg > 0) {
+        priceByType[ft].totalBroiler += Number(r.broiler_price_per_kg);
+        priceByType[ft].countBroiler++;
+        gBroilerTotal += Number(r.broiler_price_per_kg);
+        gBroilerCount++;
+      }
+      if (r.layer_egg_price_per_kg && r.layer_egg_price_per_kg > 0) {
+        priceByType[ft].totalEgg += Number(r.layer_egg_price_per_kg);
+        priceByType[ft].countEgg++;
+        gEggTotal += Number(r.layer_egg_price_per_kg);
+        gEggCount++;
+      }
+      if (r.layer_price_per_unit && r.layer_price_per_unit > 0) {
+        priceByType[ft].totalLayerUnit += Number(r.layer_price_per_unit);
+        priceByType[ft].countLayerUnit++;
+      }
+    });
+
+    const avgByType: Record<string, { avgPrice: number; count: number }> = {};
+    FARM_TYPES.forEach(t => {
+      const d = priceByType[t];
+      const totalVal = d.totalBroiler + d.totalEgg + d.totalLayerUnit;
+      const totalCount = d.countBroiler + d.countEgg + d.countLayerUnit;
+      avgByType[t] = { avgPrice: totalCount > 0 ? Math.round(totalVal / totalCount) : 0, count: totalCount };
+    });
+
+    setPriceStats({
+      byType: avgByType,
+      total: {
+        avgBroiler: gBroilerCount > 0 ? Math.round(gBroilerTotal / gBroilerCount) : 0,
+        avgEgg: gEggCount > 0 ? Math.round(gEggTotal / gEggCount) : 0,
+      },
+    });
+
     setLoading(false);
   }, [filter, customStart, customEnd, provinceFilter, cityFilter]);
 
