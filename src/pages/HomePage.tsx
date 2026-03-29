@@ -163,7 +163,7 @@ export default function HomePage() {
             <p className="text-sm text-muted-foreground">{t('Belum ada berita.', 'No news yet.')}</p>
           ) : (
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-              {blogs.slice(0, 5).map((item) => (
+              {blogs.slice(0, 6).map((item) => (
                 <Link key={item.id} to={`/berita/${item.id}`} className="group">
                   <article className="rounded-xl border bg-card shadow-sm hover:shadow-md transition-shadow h-full flex flex-col overflow-hidden min-w-0">
                     <div className="h-40 bg-muted flex items-center justify-center overflow-hidden">
@@ -172,14 +172,9 @@ export default function HomePage() {
                       ) : (<BarChart3 className="h-8 w-8 text-primary/30" />)}
                     </div>
                     <div className="p-4 flex flex-col flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant={item.blog_type === 'news' ? 'default' : 'secondary'} className="text-[10px]">
-                          {item.blog_type === 'news' ? t('Berita', 'News') : t('Kegiatan', 'Activity')}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">{formatDate(item.publish_date || item.created_at)}</span>
-                      </div>
+                      <span className="text-xs text-muted-foreground mb-2">{formatDate(item.publish_date || item.created_at)}</span>
                       <h3 className="font-display text-base font-semibold text-foreground group-hover:text-primary transition-colors">{item.title}</h3>
-                      <p className="mt-2 text-sm text-muted-foreground line-clamp-2 flex-1">{item.content}</p>
+                      <p className="mt-2 text-sm text-muted-foreground line-clamp-2 flex-1">{item.content?.replace(/<[^>]*>/g, '')}</p>
                     </div>
                   </article>
                 </Link>

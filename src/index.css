@@ -76,6 +76,19 @@
     font-family: var(--font-display);
     @apply font-bold tracking-tight;
   }
+
+  /* Ensure rich text HTML whitespace/breaks are preserved */
+  .prose p {
+    margin-bottom: 0.75em;
+  }
+  .prose br {
+    display: block;
+    content: "";
+    margin-top: 0.5em;
+  }
+  .prose p:empty {
+    min-height: 1em;
+  }
 }
 
 @layer components {
