@@ -8,7 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import LanguageToggle from '@/components/LanguageToggle';
-import logo from '@/assets/logopinsar.jpg';
+import logo from '@/assets/pinsar-logo.png';
 
 interface NavItem {
   label: string; labelEn: string; href: string; icon: React.ElementType;

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import logo from '@/assets/logopinsar.jpg';
+import logo from '@/assets/pinsar-logo.png';
 
 interface ContactInfo {
   email: string | null;
