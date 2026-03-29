@@ -18,7 +18,7 @@ const FARM_TYPE_LABELS: Record<string, string> = {
   other_cut: 'Ayam Pejantan', other_egg: 'Bebek', other_mixed: 'Puyuh',
 };
 const FARM_TYPES = Object.keys(FARM_TYPE_LABELS);
-
+const LAYER_TYPES = ['layer', 'other_egg'];
 const STATUS_LABELS: Record<string, string> = { active: 'Aktif', prapasca: 'Pra/Pasca', inactive: 'Nonaktif' };
 
 interface Farm {
@@ -26,8 +26,7 @@ interface Farm {
   district?: string | null; kelurahan?: string | null;
   farm_type: string; status: string; owner_id?: string | null;
   broiler_initial_population?: number; layer_initial_population?: number;
-  kapasitas_kandang?: number;
-  created_at?: string;
+  kapasitas_kandang?: number; created_at?: string;
 }
 interface UserOption { id: string; full_name: string; }
 
@@ -82,26 +81,35 @@ export default function FarmsPage() {
     }
     setFarms(farmData);
 
-    // Calculate current populations
+    // Calculate populations - separate logic for layer vs non-layer
     const farmIds = farmData.map(f => f.id);
     if (farmIds.length > 0) {
       const { data: supplyData } = await supabase.from('supply_records')
-        .select('farm_id, broiler_input, broiler_sold, broiler_death')
+        .select('farm_id, broiler_input, broiler_sold, broiler_death, layer_input, layer_death, layer_sold')
         .in('farm_id', farmIds);
 
-      const supplyByFarm: Record<string, { input: number; sold: number; death: number }> = {};
+      const pops: Record<string, number> = {};
+      const supplyByFarm: Record<string, any[]> = {};
       (supplyData ?? []).forEach((s: any) => {
-        if (!supplyByFarm[s.farm_id]) supplyByFarm[s.farm_id] = { input: 0, sold: 0, death: 0 };
-        supplyByFarm[s.farm_id].input += s.broiler_input ?? 0;
-        supplyByFarm[s.farm_id].sold += s.broiler_sold ?? 0;
-        supplyByFarm[s.farm_id].death += s.broiler_death ?? 0;
+        if (!supplyByFarm[s.farm_id]) supplyByFarm[s.farm_id] = [];
+        supplyByFarm[s.farm_id].push(s);
       });
 
-      const pops: Record<string, number> = {};
       farmData.forEach(f => {
-        const initial = f.broiler_initial_population ?? 0;
-        const supply = supplyByFarm[f.id] || { input: 0, sold: 0, death: 0 };
-        pops[f.id] = Math.max(0, initial + supply.input - supply.sold - supply.death);
+        const recs = supplyByFarm[f.id] || [];
+        if (LAYER_TYPES.includes(f.farm_type)) {
+          const initial = f.layer_initial_population ?? f.broiler_initial_population ?? 0;
+          const totalInput = recs.reduce((s: number, r: any) => s + (r.layer_input ?? 0), 0);
+          const totalSold = recs.reduce((s: number, r: any) => s + ((r as any).layer_sold ?? 0), 0);
+          const totalDeath = recs.reduce((s: number, r: any) => s + (r.layer_death ?? 0), 0);
+          pops[f.id] = Math.max(0, initial + totalInput - totalSold - totalDeath);
+        } else {
+          const initial = f.broiler_initial_population ?? 0;
+          const totalInput = recs.reduce((s: number, r: any) => s + (r.broiler_input ?? 0), 0);
+          const totalSold = recs.reduce((s: number, r: any) => s + (r.broiler_sold ?? 0), 0);
+          const totalDeath = recs.reduce((s: number, r: any) => s + (r.broiler_death ?? 0), 0);
+          pops[f.id] = Math.max(0, initial + totalInput - totalSold - totalDeath);
+        }
       });
       setCurrentPopulations(pops);
     }
@@ -127,26 +135,22 @@ export default function FarmsPage() {
     setEditFarm(farm);
     setOwnerId(farm.owner_id || '');
     setName(farm.name);
-    setProvinceName(farm.province);
-    setCityName(farm.city || '');
-    setDistrictName(farm.district || '');
-    setVillageName(farm.kelurahan || '');
-    setFarmType(farm.farm_type);
-    setStatus(farm.status);
+    setProvinceName(farm.province); setCityName(farm.city || '');
+    setDistrictName(farm.district || ''); setVillageName(farm.kelurahan || '');
+    setFarmType(farm.farm_type); setStatus(farm.status);
     setKapasitas(String(farm.kapasitas_kandang ?? 0));
-    setInitialPop(String(farm.broiler_initial_population ?? farm.layer_initial_population ?? 0));
+    const isLayer = LAYER_TYPES.includes(farm.farm_type);
+    setInitialPop(String(isLayer ? (farm.layer_initial_population ?? farm.broiler_initial_population ?? 0) : (farm.broiler_initial_population ?? 0)));
     setDialogOpen(true);
   }
 
   async function handleDelete() {
     if (!deleteTarget || !user) return;
     const { error } = await supabase.from('farms').delete().eq('id', deleteTarget.id);
-    if (error) {
-      toast({ title: 'Gagal menghapus', description: error.message, variant: 'destructive' });
-    } else {
+    if (error) { toast({ title: 'Gagal menghapus', description: error.message, variant: 'destructive' }); }
+    else {
       await logAudit({ action: 'delete', module: 'Farm', userId: user.id, userName: profile?.full_name, oldValue: deleteTarget });
-      toast({ title: 'Peternakan berhasil dihapus' });
-      loadData();
+      toast({ title: 'Peternakan berhasil dihapus' }); loadData();
     }
     setDeleteTarget(null);
   }
@@ -157,21 +161,18 @@ export default function FarmsPage() {
     setCityId(''); setCityName(''); setDistrictId(''); setDistrictName(''); setVillageId(''); setVillageName('');
     regions.fetchCities(id);
   }
-
   function handleCityChange(id: string) {
     const c = regions.cities.find(c => c.id === id);
     setCityId(id); setCityName(c?.name || '');
     setDistrictId(''); setDistrictName(''); setVillageId(''); setVillageName('');
     regions.fetchDistricts(id);
   }
-
   function handleDistrictChange(id: string) {
     const d = regions.districts.find(d => d.id === id);
     setDistrictId(id); setDistrictName(d?.name || '');
     setVillageId(''); setVillageName('');
     regions.fetchVillages(id);
   }
-
   function handleVillageChange(id: string) {
     const v = regions.villages.find(v => v.id === id);
     setVillageId(id); setVillageName(v?.name || '');
@@ -184,21 +185,20 @@ export default function FarmsPage() {
 
     const selectedOwner = isSuperadmin ? ownerId : user.id;
     if (!selectedOwner) { toast({ title: 'Pilih pemilik terlebih dahulu', variant: 'destructive' }); setSubmitting(false); return; }
-
     if (!editFarm && (!provinceName || !cityName || !districtName || !villageName)) {
       toast({ title: 'Validasi gagal', description: 'Semua lokasi wajib diisi.', variant: 'destructive' }); setSubmitting(false); return;
     }
 
     const numKapasitas = Number(kapasitas) || 0;
     const numInitialPop = Number(initialPop) || 0;
+    const isLayer = LAYER_TYPES.includes(farmType);
 
     const payload: any = {
       name, province: provinceName, city: cityName || null, district: districtName || null, kelurahan: villageName || null,
-      farm_type: farmType as any, status: status as any,
-      owner_id: selectedOwner,
+      farm_type: farmType as any, status: status as any, owner_id: selectedOwner,
       kapasitas_kandang: numKapasitas,
-      broiler_initial_population: numInitialPop,
-      layer_initial_population: 0,
+      broiler_initial_population: isLayer ? 0 : numInitialPop,
+      layer_initial_population: isLayer ? numInitialPop : 0,
     };
 
     if (editFarm) {
@@ -206,8 +206,7 @@ export default function FarmsPage() {
       if (error) { toast({ title: 'Gagal', description: error.message, variant: 'destructive' }); }
       else {
         await logAudit({ action: 'edit', module: 'Farm', userId: user.id, userName: profile?.full_name, oldValue: editFarm, newValue: { ...payload, id: editFarm.id } });
-        toast({ title: 'Peternakan berhasil diperbarui' });
-        resetForm(); setDialogOpen(false); loadData();
+        toast({ title: 'Peternakan berhasil diperbarui' }); resetForm(); setDialogOpen(false); loadData();
       }
     } else {
       payload.farm_code = generateFarmCode(provinceName, cityName);
@@ -233,34 +232,20 @@ export default function FarmsPage() {
           <p className="text-sm text-muted-foreground">Kelola data peternakan</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" /> Tambah Peternakan</Button>
-          </DialogTrigger>
+          <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" /> Tambah Peternakan</Button></DialogTrigger>
           <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle className="font-display">{isEditing ? 'Edit Peternakan' : 'Tambah Peternakan Baru'}</DialogTitle>
-            </DialogHeader>
+            <DialogHeader><DialogTitle className="font-display">{isEditing ? 'Edit Peternakan' : 'Tambah Peternakan Baru'}</DialogTitle></DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <Label>Pemilik</Label>
                 {isSuperadmin ? (
                   <Select value={ownerId} onValueChange={setOwnerId}>
                     <SelectTrigger><SelectValue placeholder="Pilih pemilik" /></SelectTrigger>
-                    <SelectContent>
-                      {userList.map(u => (
-                        <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
-                      ))}
-                    </SelectContent>
+                    <SelectContent>{userList.map(u => <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>)}</SelectContent>
                   </Select>
-                ) : (
-                  <Input value={profile?.full_name || ''} disabled className="bg-muted" />
-                )}
+                ) : (<Input value={profile?.full_name || ''} disabled className="bg-muted" />)}
               </div>
-
-              <div>
-                <Label>Nama Peternakan</Label>
-                <Input value={name} onChange={e => setName(e.target.value)} required placeholder="Peternakan Sejahtera" />
-              </div>
+              <div><Label>Nama Peternakan</Label><Input value={name} onChange={e => setName(e.target.value)} required placeholder="Peternakan Sejahtera" /></div>
 
               {isEditing ? (
                 <>
@@ -276,15 +261,13 @@ export default function FarmsPage() {
               ) : (
                 <>
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label>Provinsi</Label>
+                    <div><Label>Provinsi</Label>
                       <Select value={provinceId} onValueChange={handleProvinceChange}>
                         <SelectTrigger><SelectValue placeholder={regions.loadingProvinces ? 'Memuat...' : 'Pilih Provinsi'} /></SelectTrigger>
                         <SelectContent>{regions.provinces.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
-                    <div>
-                      <Label>Kota/Kabupaten</Label>
+                    <div><Label>Kota/Kabupaten</Label>
                       <Select value={cityId} onValueChange={handleCityChange} disabled={!provinceId}>
                         <SelectTrigger><SelectValue placeholder={regions.loadingCities ? 'Memuat...' : 'Pilih Kota'} /></SelectTrigger>
                         <SelectContent>{regions.cities.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
@@ -292,15 +275,13 @@ export default function FarmsPage() {
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label>Kecamatan</Label>
+                    <div><Label>Kecamatan</Label>
                       <Select value={districtId} onValueChange={handleDistrictChange} disabled={!cityId}>
                         <SelectTrigger><SelectValue placeholder={regions.loadingDistricts ? 'Memuat...' : 'Pilih Kecamatan'} /></SelectTrigger>
                         <SelectContent>{regions.districts.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
-                    <div>
-                      <Label>Kelurahan</Label>
+                    <div><Label>Kelurahan</Label>
                       <Select value={villageId} onValueChange={handleVillageChange} disabled={!districtId}>
                         <SelectTrigger><SelectValue placeholder={regions.loadingVillages ? 'Memuat...' : 'Pilih Kelurahan'} /></SelectTrigger>
                         <SelectContent>{regions.villages.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}</SelectContent>
@@ -311,16 +292,14 @@ export default function FarmsPage() {
               )}
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Tipe Peternakan</Label>
+                <div><Label>Tipe Peternakan</Label>
                   <Select value={farmType} onValueChange={setFarmType}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>{FARM_TYPES.map(k => <SelectItem key={k} value={k}>{FARM_TYPE_LABELS[k]}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 {isEditing && (
-                  <div>
-                    <Label>Status</Label>
+                  <div><Label>Status</Label>
                     <Select value={status} onValueChange={setStatus}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>{Object.entries(STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
@@ -329,14 +308,8 @@ export default function FarmsPage() {
                 )}
               </div>
 
-              <div>
-                <Label>Kapasitas Kandang</Label>
-                <Input type="number" min="0" value={kapasitas} onChange={e => setKapasitas(e.target.value)} required />
-              </div>
-              <div>
-                <Label>Populasi Awal</Label>
-                <Input type="number" min="0" value={initialPop} onChange={e => setInitialPop(e.target.value)} required />
-              </div>
+              <div><Label>Kapasitas Kandang</Label><Input type="number" min="0" value={kapasitas} onChange={e => setKapasitas(e.target.value)} required /></div>
+              <div><Label>Populasi Awal</Label><Input type="number" min="0" value={initialPop} onChange={e => setInitialPop(e.target.value)} required /></div>
 
               <Button type="submit" className="w-full" disabled={submitting}>
                 {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...</> : isEditing ? 'Simpan Perubahan' : 'Simpan Peternakan'}
@@ -350,9 +323,7 @@ export default function FarmsPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus Peternakan?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Anda yakin ingin menghapus peternakan <strong>{deleteTarget?.name}</strong>? Tindakan ini tidak dapat dibatalkan.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Anda yakin ingin menghapus peternakan <strong>{deleteTarget?.name}</strong>?</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
@@ -386,37 +357,35 @@ export default function FarmsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {farms.map((farm) => (
-                    <tr key={farm.id} className="border-b last:border-0">
-                      <td className="px-3 py-3 font-mono text-xs whitespace-nowrap">{farm.farm_code}</td>
-                      <td className="px-3 py-3 font-medium text-foreground whitespace-nowrap">{farm.name}</td>
-                      <td className="px-3 py-3 text-muted-foreground text-xs max-w-[200px] truncate">
-                        {[farm.province, farm.city].filter(Boolean).join(', ')}
-                      </td>
-                      <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">{FARM_TYPE_LABELS[farm.farm_type] || farm.farm_type}</td>
-                      <td className="px-3 py-3 text-right text-foreground whitespace-nowrap">{(farm.kapasitas_kandang ?? 0).toLocaleString('id-ID')}</td>
-                      <td className="px-3 py-3 text-right text-foreground whitespace-nowrap">{(farm.broiler_initial_population ?? 0).toLocaleString('id-ID')}</td>
-                      <td className="px-3 py-3 text-right font-semibold text-foreground whitespace-nowrap">{(currentPopulations[farm.id] ?? 0).toLocaleString('id-ID')}</td>
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <span className={farm.status === 'active' ? 'status-badge-submitted' : farm.status === 'prapasca' ? 'status-badge-pending' : 'status-badge-not-submitted'}>
-                          {STATUS_LABELS[farm.status] || farm.status}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 text-muted-foreground text-xs whitespace-nowrap">
-                        {farm.created_at ? new Date(farm.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <div className="flex gap-1">
-                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(farm)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setDeleteTarget(farm)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {farms.map((farm) => {
+                    const isLayer = LAYER_TYPES.includes(farm.farm_type);
+                    const initPop = isLayer ? (farm.layer_initial_population ?? farm.broiler_initial_population ?? 0) : (farm.broiler_initial_population ?? 0);
+                    return (
+                      <tr key={farm.id} className="border-b last:border-0">
+                        <td className="px-3 py-3 font-mono text-xs whitespace-nowrap">{farm.farm_code}</td>
+                        <td className="px-3 py-3 font-medium text-foreground whitespace-nowrap">{farm.name}</td>
+                        <td className="px-3 py-3 text-muted-foreground text-xs max-w-[200px] truncate">{[farm.province, farm.city].filter(Boolean).join(', ')}</td>
+                        <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">{FARM_TYPE_LABELS[farm.farm_type] || farm.farm_type}</td>
+                        <td className="px-3 py-3 text-right text-foreground whitespace-nowrap">{(farm.kapasitas_kandang ?? 0).toLocaleString('id-ID')}</td>
+                        <td className="px-3 py-3 text-right text-foreground whitespace-nowrap">{initPop.toLocaleString('id-ID')}</td>
+                        <td className="px-3 py-3 text-right font-semibold text-foreground whitespace-nowrap">{(currentPopulations[farm.id] ?? 0).toLocaleString('id-ID')}</td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <span className={farm.status === 'active' ? 'status-badge-submitted' : farm.status === 'prapasca' ? 'status-badge-pending' : 'status-badge-not-submitted'}>
+                            {STATUS_LABELS[farm.status] || farm.status}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3 text-muted-foreground text-xs whitespace-nowrap">
+                          {farm.created_at ? new Date(farm.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <div className="flex gap-1">
+                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(farm)}><Pencil className="h-4 w-4" /></Button>
+                            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setDeleteTarget(farm)}><Trash2 className="h-4 w-4" /></Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

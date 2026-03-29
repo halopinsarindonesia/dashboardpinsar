@@ -19,34 +19,29 @@ Deno.serve(async (req) => {
     const { data: { user: caller } } = await supabase.auth.getUser(token);
     if (!caller) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
-    // Check if caller is superadmin
     const { data: callerRoles } = await supabase.from('user_roles').select('role').eq('user_id', caller.id);
     const isSuperadmin = callerRoles?.some((r: any) => r.role === 'superadmin');
-    
     if (!isSuperadmin) {
       return new Response(JSON.stringify({ error: 'Forbidden - only superadmin can create users' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const body = await req.json();
-    const { email, password, full_name, phone, role, province, house_address, work_address, status: userStatus } = body;
+    const { email, password, full_name, phone, role, province, house_address, work_address, status: userStatus, ktp, kk } = body;
 
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
+      email, password, email_confirm: true,
     });
     if (authError) return new Response(JSON.stringify({ error: authError.message }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     const { error: profileError } = await supabase.from('profiles').insert({
-      id: authData.user.id,
-      full_name,
-      email,
-      phone: phone || null,
-      role,
+      id: authData.user.id, full_name, email,
+      phone: phone || null, role,
       status: userStatus || 'approved',
       province: province || null,
       house_address: house_address || null,
       work_address: work_address || null,
+      ktp: ktp || null,
+      kk: kk || null,
     });
     if (profileError) {
       await supabase.auth.admin.deleteUser(authData.user.id);
@@ -56,10 +51,8 @@ Deno.serve(async (req) => {
     const { data: callerProfile } = await supabase.from('profiles').select('full_name').eq('id', caller.id).single();
 
     await supabase.from('audit_logs').insert({
-      action: 'create',
-      module: 'User',
-      user_id: caller.id,
-      user_name: callerProfile?.full_name,
+      action: 'create', module: 'User',
+      user_id: caller.id, user_name: callerProfile?.full_name,
       new_value: { full_name, email, role, province },
     });
 

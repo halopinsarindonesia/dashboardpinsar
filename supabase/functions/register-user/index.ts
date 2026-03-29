@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
     );
 
     const body = await req.json();
-    const { email, password, full_name, phone, role, province, house_address, work_address } = body;
+    const { email, password, full_name, phone, role, province, house_address, work_address, ktp, kk } = body;
 
     if (!email || !password || !full_name || !role) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
@@ -23,11 +23,20 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create user with email auto-confirmed (they still need admin approval)
+    if (!ktp || !/^\d{16}$/.test(ktp)) {
+      return new Response(JSON.stringify({ error: 'KTP must be exactly 16 digits' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!kk || !/^\d{16}$/.test(kk)) {
+      return new Response(JSON.stringify({ error: 'KK must be exactly 16 digits' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
+      email, password, email_confirm: true,
     });
 
     if (authError) {
@@ -36,21 +45,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create profile with pending status
     const { error: profileError } = await supabase.from('profiles').insert({
-      id: authData.user.id,
-      full_name,
-      email,
-      phone: phone || null,
-      role,
-      status: 'pending',
+      id: authData.user.id, full_name, email,
+      phone: phone || null, role, status: 'pending',
       province: province || null,
       house_address: house_address || null,
       work_address: work_address || null,
+      ktp: ktp || null,
+      kk: kk || null,
     });
 
     if (profileError) {
-      // Clean up auth user if profile creation fails
       await supabase.auth.admin.deleteUser(authData.user.id);
       return new Response(JSON.stringify({ error: profileError.message }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },

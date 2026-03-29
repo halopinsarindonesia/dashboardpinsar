@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 
 import PublicLayout from "@/layouts/PublicLayout";
 import DashboardLayout from "@/layouts/DashboardLayout";
@@ -32,38 +33,40 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route element={<PublicLayout />}>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/harga" element={<HargaPage />} />
-              <Route path="/berita" element={<BeritaPage />} />
-              <Route path="/berita/:id" element={<BeritaDetailPage />} />
-              <Route path="/tentang/:section" element={<TentangKamiPage />} />
-              <Route path="/kontak" element={<KontakPage />} />
-            </Route>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/dashboard" element={<DashboardLayout />}>
-              <Route index element={<DashboardOverview />} />
-              <Route path="farms" element={<FarmsPage />} />
-              <Route path="supply" element={<SupplyPage />} />
-              <Route path="map" element={<MapPage />} />
-              <Route path="users" element={<UsersPage />} />
-              <Route path="cms" element={<CMSPage />} />
-              <Route path="export" element={<ExportPage />} />
-              <Route path="audit" element={<AuditPage />} />
-              <Route path="settings" element={<SettingsPage />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route element={<PublicLayout />}>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/harga" element={<HargaPage />} />
+                <Route path="/berita" element={<BeritaPage />} />
+                <Route path="/berita/:id" element={<BeritaDetailPage />} />
+                <Route path="/tentang/:section" element={<TentangKamiPage />} />
+                <Route path="/kontak" element={<KontakPage />} />
+              </Route>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/dashboard" element={<DashboardLayout />}>
+                <Route index element={<DashboardOverview />} />
+                <Route path="farms" element={<FarmsPage />} />
+                <Route path="supply" element={<SupplyPage />} />
+                <Route path="map" element={<MapPage />} />
+                <Route path="users" element={<UsersPage />} />
+                <Route path="cms" element={<CMSPage />} />
+                <Route path="export" element={<ExportPage />} />
+                <Route path="audit" element={<AuditPage />} />
+                <Route path="settings" element={<SettingsPage />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </LanguageProvider>
   </QueryClientProvider>
 );
 
