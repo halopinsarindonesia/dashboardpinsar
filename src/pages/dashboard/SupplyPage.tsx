@@ -274,7 +274,15 @@ export default function SupplyPage() {
         toast({ title: 'Data produksi berhasil diperbarui' });
         const farm = farms.find(f => f.id === selectedFarmId);
         const isLayer = farm && LAYER_TYPES.includes(farm.farm_type);
-        if (newPop <= 0 && (isLayer || !isLayer)) {
+        if (isLayer) {
+          // Layer: only go pra/pasca when population = 0
+          if (newPop <= 0) {
+            await supabase.from('farms').update({ status: 'prapasca' as any }).eq('id', selectedFarmId);
+          } else {
+            // If population > 0, ensure status is active
+            await supabase.from('farms').update({ status: 'active' as any }).eq('id', selectedFarmId).eq('status', 'prapasca' as any);
+          }
+        } else if (newPop <= 0) {
           await supabase.from('farms').update({ status: 'prapasca' as any }).eq('id', selectedFarmId).eq('status', 'active');
         }
         resetForm(); setDialogOpen(false); loadData();
@@ -292,7 +300,13 @@ export default function SupplyPage() {
         toast({ title: 'Berhasil', description: 'Data produksi berhasil disimpan.' });
         const farm = farms.find(f => f.id === selectedFarmId);
         const isLayer = farm && LAYER_TYPES.includes(farm.farm_type);
-        if (newPop <= 0 && (isLayer || !isLayer)) {
+        if (isLayer) {
+          if (newPop <= 0) {
+            await supabase.from('farms').update({ status: 'prapasca' as any }).eq('id', selectedFarmId);
+          } else {
+            await supabase.from('farms').update({ status: 'active' as any }).eq('id', selectedFarmId).eq('status', 'prapasca' as any);
+          }
+        } else if (newPop <= 0) {
           await supabase.from('farms').update({ status: 'prapasca' as any }).eq('id', selectedFarmId).eq('status', 'active');
         }
         resetForm(); setDialogOpen(false); loadData();

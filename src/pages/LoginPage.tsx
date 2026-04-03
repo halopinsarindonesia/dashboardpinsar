@@ -78,7 +78,7 @@ export default function LoginPage() {
           PINSAR Indonesia
         </h1>
         <p className="mt-4 text-lg text-white/80 relative z-10">
-          Platform data perunggasan nasional. Pantau harga, kelola peternakan, dan laporkan suplai harian.
+          Platform berbasis Organisasi Data Center (ODC). Mengelola informasi Peternakan, Produksi serta Informasi Keanggotaan lainnya.
         </p>
       </div>
 

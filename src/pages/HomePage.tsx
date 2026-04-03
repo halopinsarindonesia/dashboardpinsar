@@ -90,18 +90,11 @@ export default function HomePage() {
         <div className="container relative z-10">
           <div className="max-w-2xl">
             <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl leading-tight">
-              {t('Perhimpunan Insan Perunggasan Rakyat Indonesia', 'Indonesian People\'s Poultry Association')}
+              {t('Perhimpunan Insan Perunggasan Rakyat Indonesia (PINSAR)', 'Indonesian People\'s Poultry Association (PINSAR)')}
             </h1>
             <p className="mt-4 text-lg text-white/80">
-              {t('Platform digital untuk memantau harga, mengelola peternakan, dan mendukung industri perunggasan Indonesia.', 'Digital platform for monitoring prices, managing farms, and supporting Indonesia\'s poultry industry.')}
+              {t('Rumah bagi seluruh pelaku usaha Unggas Nasional, Sarana komunikasi dan informasi Seputar industri perunggasan untuk mendorong Peternak Kuat, Indonesia Berdaulat.', 'Home for all National Poultry business players, Communication and information platform for the poultry industry to encourage Strong Farmers, Sovereign Indonesia.')}
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link to="/login">
-                <Button size="lg" className="font-semibold">
-                  {t('Masuk Dashboard', 'Enter Dashboard')} <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
           </div>
         </div>
       </section>
@@ -110,11 +103,11 @@ export default function HomePage() {
       <section className="bg-primary py-4">
         <div className="container flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-sm font-medium text-primary-foreground text-center sm:text-left">
-            {t('Daftar sekarang untuk mendapatkan informasi komprehensif mengenai suplai unggas Indonesia', 'Register now to get comprehensive information on Indonesian poultry supply')}
+            {t('Daftar Sekarang, untuk Peternakan Indonesia Kuat & Berdaulat.', 'Register Now, for a Strong & Sovereign Indonesian Poultry.')}
           </p>
            <Link to="/register">
             <Button size="sm" className="shrink-0 font-semibold bg-white text-primary hover:bg-white/90">
-              {t('Daftar Sekarang', 'Register Now')} <ArrowRight className="ml-1 h-3 w-3" />
+              {t('Daftar Anggota', 'Register Member')} <ArrowRight className="ml-1 h-3 w-3" />
             </Button>
           </Link>
         </div>
@@ -133,8 +126,8 @@ export default function HomePage() {
       {/* PINSAR in Numbers */}
       <section className="py-16 bg-card border-b">
         <div className="container">
-          <h2 className="font-display text-2xl font-bold text-foreground text-center mb-2">{t('PINSAR dalam Angka', 'PINSAR in Numbers')}</h2>
-          <p className="text-muted-foreground text-center mb-10">{t('Data terkini dari seluruh jaringan PINSAR Indonesia', 'Latest data from the PINSAR Indonesia network')}</p>
+          <h2 className="font-display text-2xl font-bold text-foreground text-center mb-2">{t('Jaringan PINSAR Indonesia', 'PINSAR Indonesia Network')}</h2>
+          <p className="text-muted-foreground text-center mb-10">{t('Rumah bagi Peternak Indonesia. Terbesar dan Terpercaya.', 'Home for Indonesian Farmers. Largest and Most Trusted.')}</p>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
             {[
               { icon: Calendar, value: animYears, label: t('Tahun Aktif', 'Years Active') },
@@ -188,7 +181,7 @@ export default function HomePage() {
       {gallery.length > 0 && (
         <section className="py-16 bg-card border-b">
           <div className="container">
-            <h2 className="font-display text-2xl font-bold text-foreground text-center mb-8">{t('Galeri', 'Gallery')}</h2>
+            <h2 className="font-display text-2xl font-bold text-foreground text-center mb-8">{t('Galeri Kegiatan', 'Activity Gallery')}</h2>
             <div className="relative max-w-3xl mx-auto">
               <div className="aspect-video rounded-xl overflow-hidden bg-muted">
                 <img src={gallery[galleryIdx]?.image_url} alt={gallery[galleryIdx]?.title || 'Gallery'} className="h-full w-full object-cover" />

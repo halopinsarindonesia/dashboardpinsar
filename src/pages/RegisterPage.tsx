@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bird } from 'lucide-react';
+import logo from '@/assets/pinsar-logo.png';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -70,10 +70,10 @@ export default function RegisterPage() {
   return (
     <div className="flex min-h-screen">
       <div className="hidden w-1/2 bg-primary lg:flex lg:flex-col lg:justify-center lg:px-16">
-        <Bird className="mb-6 h-12 w-12 text-primary-foreground" />
-        <h1 className="font-display text-3xl font-extrabold text-primary-foreground">{t('Daftar Akun', 'Register Account')}</h1>
+        <img src={logo} alt="PINSAR Indonesia" className="mb-6 h-20 w-auto object-contain" />
+        <h1 className="font-display text-3xl font-extrabold text-primary-foreground">{t('Daftar Anggota', 'Register Member')}</h1>
         <p className="mt-4 text-lg text-primary-foreground/70">
-          {t('Bergabunglah dengan PINSAR untuk mengakses data perunggasan nasional.', 'Join PINSAR to access national poultry data.')}
+          {t('Langkah awal untuk mendukung Industri Perunggasan lebih professional dan transparan.', 'The first step to support a more professional and transparent Poultry Industry.')}
         </p>
       </div>
 
@@ -81,16 +81,15 @@ export default function RegisterPage() {
         <div className="w-full max-w-md">
           <div className="mb-8 flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
-              <Bird className="h-8 w-8 text-primary" />
-              <span className="font-display text-xl font-bold text-foreground">PINSAR</span>
+              <img src={logo} alt="PINSAR" className="h-10 w-auto object-contain" />
             </Link>
             <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               ← {t('Kembali', 'Back')}
             </Link>
           </div>
 
-          <h2 className="font-display text-2xl font-bold text-foreground">{t('Registrasi', 'Registration')}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{t('Lengkapi data Anda untuk mendaftar', 'Complete your data to register')}</p>
+          <h2 className="font-display text-2xl font-bold text-foreground">{t('Daftar Anggota', 'Register Member')}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t('Langkah awal untuk mendukung Industri Perunggasan lebih professional dan transparan.', 'The first step to support a more professional and transparent Poultry Industry.')}</p>
 
           <form onSubmit={handleRegister} className="mt-6 space-y-4">
             <div>
@@ -143,7 +142,7 @@ export default function RegisterPage() {
               <Input id="house-addr" value={houseAddress} onChange={(e) => setHouseAddress(e.target.value)} />
             </div>
             <div>
-              <Label htmlFor="work-addr">{t('Alamat Kerja (opsional)', 'Work Address (optional)')}</Label>
+              <Label htmlFor="work-addr">{t('Alamat Kantor (opsional)', 'Office Address (optional)')}</Label>
               <Input id="work-addr" value={workAddress} onChange={(e) => setWorkAddress(e.target.value)} />
             </div>
 
