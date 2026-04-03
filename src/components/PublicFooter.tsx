@@ -38,7 +38,7 @@ export default function PublicFooter() {
             <h4 className="font-display text-sm font-semibold mb-4">Navigasi</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li><Link to="/" className="hover:text-foreground">Beranda</Link></li>
-              <li><Link to="/harga" className="hover:text-foreground">Harga</Link></li>
+              <li><Link to="/harga" className="hover:text-foreground">Informasi</Link></li>
               <li><Link to="/berita" className="hover:text-foreground">Berita</Link></li>
               <li><Link to="/tentang/sejarah" className="hover:text-foreground">Tentang Kami</Link></li>
             </ul>
