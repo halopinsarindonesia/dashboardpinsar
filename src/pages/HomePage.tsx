@@ -126,8 +126,8 @@ export default function HomePage() {
       {/* PINSAR in Numbers */}
       <section className="py-16 bg-card border-b">
         <div className="container">
-          <h2 className="font-display text-2xl font-bold text-foreground text-center mb-2">{t('PINSAR dalam Angka', 'PINSAR in Numbers')}</h2>
-          <p className="text-muted-foreground text-center mb-10">{t('Data terkini dari seluruh jaringan PINSAR Indonesia', 'Latest data from the PINSAR Indonesia network')}</p>
+          <h2 className="font-display text-2xl font-bold text-foreground text-center mb-2">{t('Jaringan PINSAR Indonesia', 'PINSAR Indonesia Network')}</h2>
+          <p className="text-muted-foreground text-center mb-10">{t('Rumah bagi Peternak Indonesia. Terbesar dan Terpercaya.', 'Home for Indonesian Farmers. Largest and Most Trusted.')}</p>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
             {[
               { icon: Calendar, value: animYears, label: t('Tahun Aktif', 'Years Active') },
