@@ -95,7 +95,7 @@ export default function DashboardLayout() {
       <aside className="hidden w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground lg:flex">
         <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6 bg-white">
           <Link to="/">
-            <img src={logo} alt="PINSAR" className="h-8 w-8 object-contain cursor-pointer" />
+            <img src={logo} alt="PINSAR" className="h-12 w-12 object-contain cursor-pointer" />
           </Link>
         </div>
         {sidebarContent}
