@@ -73,7 +73,7 @@ export default function LoginPage() {
           backgroundSize: 'cover', backgroundPosition: 'center',
         }}
       >
-        <img src={logo} alt="PINSAR Indonesia" className="mb-6 h-20 w-auto object-contain self-start relative z-10" />
+        <img src={logo} alt="PINSAR Indonesia" className="mb-6 h-14 w-auto object-contain self-start relative z-10" />
         <h1 className="font-display text-3xl font-extrabold text-white relative z-10">
           PINSAR Indonesia
         </h1>

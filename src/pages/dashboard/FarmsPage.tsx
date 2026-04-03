@@ -112,6 +112,19 @@ export default function FarmsPage() {
         }
       });
       setCurrentPopulations(pops);
+
+      // Auto-correct layer farm statuses based on population
+      for (const f of farmData) {
+        if (LAYER_TYPES.includes(f.farm_type)) {
+          const pop = pops[f.id] ?? 0;
+          const shouldBe = pop <= 0 ? 'prapasca' : 'active';
+          if (f.status !== shouldBe && (f.status === 'active' || f.status === 'prapasca')) {
+            await supabase.from('farms').update({ status: shouldBe as any }).eq('id', f.id);
+            f.status = shouldBe;
+          }
+        }
+      }
+      setFarms([...farmData]);
     }
     setLoading(false);
   }
@@ -193,9 +206,16 @@ export default function FarmsPage() {
     const numInitialPop = Number(initialPop) || 0;
     const isLayer = LAYER_TYPES.includes(farmType);
 
+    // For layer types, auto-determine status based on population
+    let effectiveStatus = status;
+    if (isLayer && editFarm) {
+      const pop = currentPopulations[editFarm.id] ?? 0;
+      effectiveStatus = pop <= 0 ? 'prapasca' : 'active';
+    }
+
     const payload: any = {
       name, province: provinceName, city: cityName || null, district: districtName || null, kelurahan: villageName || null,
-      farm_type: farmType as any, status: status as any, owner_id: selectedOwner,
+      farm_type: farmType as any, status: effectiveStatus as any, owner_id: selectedOwner,
       kapasitas_kandang: numKapasitas,
       broiler_initial_population: isLayer ? 0 : numInitialPop,
       layer_initial_population: isLayer ? numInitialPop : 0,
@@ -370,9 +390,18 @@ export default function FarmsPage() {
                         <td className="px-3 py-3 text-right text-foreground whitespace-nowrap">{initPop.toLocaleString('id-ID')}</td>
                         <td className="px-3 py-3 text-right font-semibold text-foreground whitespace-nowrap">{(currentPopulations[farm.id] ?? 0).toLocaleString('id-ID')}</td>
                         <td className="px-3 py-3 whitespace-nowrap">
-                          <span className={farm.status === 'active' ? 'status-badge-submitted' : farm.status === 'prapasca' ? 'status-badge-pending' : 'status-badge-not-submitted'}>
-                            {STATUS_LABELS[farm.status] || farm.status}
-                          </span>
+                          {(() => {
+                            const pop = currentPopulations[farm.id] ?? 0;
+                            // For layer types: status is determined by population
+                            const effectiveStatus = isLayer
+                              ? (pop <= 0 ? 'prapasca' : 'active')
+                              : farm.status;
+                            return (
+                              <span className={effectiveStatus === 'active' ? 'status-badge-submitted' : effectiveStatus === 'prapasca' ? 'status-badge-pending' : 'status-badge-not-submitted'}>
+                                {STATUS_LABELS[effectiveStatus] || effectiveStatus}
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td className="px-3 py-3 text-muted-foreground text-xs whitespace-nowrap">
                           {farm.created_at ? new Date(farm.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
