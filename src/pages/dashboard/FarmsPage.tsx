@@ -112,8 +112,19 @@ export default function FarmsPage() {
         }
       });
       setCurrentPopulations(pops);
-    }
-    setLoading(false);
+
+      // Auto-correct layer farm statuses based on population
+      for (const f of farmData) {
+        if (LAYER_TYPES.includes(f.farm_type)) {
+          const pop = pops[f.id] ?? 0;
+          const shouldBe = pop <= 0 ? 'prapasca' : 'active';
+          if (f.status !== shouldBe && (f.status === 'active' || f.status === 'prapasca')) {
+            await supabase.from('farms').update({ status: shouldBe as any }).eq('id', f.id);
+            f.status = shouldBe;
+          }
+        }
+      }
+      setFarms([...farmData]);
   }
 
   function generateFarmCode(prov: string, ct: string) {
