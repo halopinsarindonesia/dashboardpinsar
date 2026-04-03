@@ -125,6 +125,8 @@ export default function FarmsPage() {
         }
       }
       setFarms([...farmData]);
+    }
+    setLoading(false);
   }
 
   function generateFarmCode(prov: string, ct: string) {
