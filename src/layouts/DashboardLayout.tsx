@@ -93,7 +93,7 @@ export default function DashboardLayout() {
     <div className="flex h-screen overflow-hidden">
       {/* Desktop Sidebar */}
       <aside className="hidden w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground lg:flex">
-        <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6 bg-white">
+        <div className="flex h-28 items-center gap-2 border-b border-sidebar-border px-6 bg-white">
           <Link to="/">
             <img src={logo} alt="PINSAR" className="h-24 w-24 object-contain cursor-pointer" />
           </Link>
