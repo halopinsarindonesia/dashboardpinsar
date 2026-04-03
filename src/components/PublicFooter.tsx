@@ -47,9 +47,9 @@ export default function PublicFooter() {
           <div>
             <h4 className="font-display text-sm font-semibold mb-4">Kontak</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>{contact?.email || 'info@pinsar.or.id'}</li>
-              <li>{contact?.phone || '-'}</li>
               <li>{contact?.address || 'Jakarta, Indonesia'}</li>
+              <li>{contact?.phone || '-'}</li>
+              <li>{contact?.email || 'info@pinsar.or.id'}</li>
             </ul>
           </div>
 

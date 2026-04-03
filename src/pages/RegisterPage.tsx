@@ -142,7 +142,7 @@ export default function RegisterPage() {
               <Input id="house-addr" value={houseAddress} onChange={(e) => setHouseAddress(e.target.value)} />
             </div>
             <div>
-              <Label htmlFor="work-addr">{t('Alamat Kerja (opsional)', 'Work Address (optional)')}</Label>
+              <Label htmlFor="work-addr">{t('Alamat Kantor (opsional)', 'Office Address (optional)')}</Label>
               <Input id="work-addr" value={workAddress} onChange={(e) => setWorkAddress(e.target.value)} />
             </div>
 

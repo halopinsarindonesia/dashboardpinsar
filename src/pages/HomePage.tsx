@@ -181,7 +181,7 @@ export default function HomePage() {
       {gallery.length > 0 && (
         <section className="py-16 bg-card border-b">
           <div className="container">
-            <h2 className="font-display text-2xl font-bold text-foreground text-center mb-8">{t('Galeri', 'Gallery')}</h2>
+            <h2 className="font-display text-2xl font-bold text-foreground text-center mb-8">{t('Galeri Kegiatan', 'Activity Gallery')}</h2>
             <div className="relative max-w-3xl mx-auto">
               <div className="aspect-video rounded-xl overflow-hidden bg-muted">
                 <img src={gallery[galleryIdx]?.image_url} alt={gallery[galleryIdx]?.title || 'Gallery'} className="h-full w-full object-cover" />
