@@ -88,8 +88,8 @@ export default function RegisterPage() {
             </Link>
           </div>
 
-          <h2 className="font-display text-2xl font-bold text-foreground">{t('Registrasi', 'Registration')}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{t('Lengkapi data Anda untuk mendaftar', 'Complete your data to register')}</p>
+          <h2 className="font-display text-2xl font-bold text-foreground">{t('Daftar Anggota', 'Register Member')}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t('Langkah awal untuk mendukung Industri Perunggasan lebih professional dan transparan.', 'The first step to support a more professional and transparent Poultry Industry.')}</p>
 
           <form onSubmit={handleRegister} className="mt-6 space-y-4">
             <div>
