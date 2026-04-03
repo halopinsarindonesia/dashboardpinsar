@@ -103,11 +103,11 @@ export default function HomePage() {
       <section className="bg-primary py-4">
         <div className="container flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-sm font-medium text-primary-foreground text-center sm:text-left">
-            {t('Daftar sekarang untuk mendapatkan informasi komprehensif mengenai suplai unggas Indonesia', 'Register now to get comprehensive information on Indonesian poultry supply')}
+            {t('Daftar Sekarang, untuk Peternakan Indonesia Kuat & Berdaulat.', 'Register Now, for a Strong & Sovereign Indonesian Poultry.')}
           </p>
            <Link to="/register">
             <Button size="sm" className="shrink-0 font-semibold bg-white text-primary hover:bg-white/90">
-              {t('Daftar Sekarang', 'Register Now')} <ArrowRight className="ml-1 h-3 w-3" />
+              {t('Daftar Anggota', 'Register Member')} <ArrowRight className="ml-1 h-3 w-3" />
             </Button>
           </Link>
         </div>
