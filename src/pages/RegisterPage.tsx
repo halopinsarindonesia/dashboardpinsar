@@ -70,10 +70,10 @@ export default function RegisterPage() {
   return (
     <div className="flex min-h-screen">
       <div className="hidden w-1/2 bg-primary lg:flex lg:flex-col lg:justify-center lg:px-16">
-        <Bird className="mb-6 h-12 w-12 text-primary-foreground" />
-        <h1 className="font-display text-3xl font-extrabold text-primary-foreground">{t('Daftar Akun', 'Register Account')}</h1>
+        <img src={logo} alt="PINSAR Indonesia" className="mb-6 h-20 w-auto object-contain" />
+        <h1 className="font-display text-3xl font-extrabold text-primary-foreground">{t('Daftar Anggota', 'Register Member')}</h1>
         <p className="mt-4 text-lg text-primary-foreground/70">
-          {t('Bergabunglah dengan PINSAR untuk mengakses data perunggasan nasional.', 'Join PINSAR to access national poultry data.')}
+          {t('Langkah awal untuk mendukung Industri Perunggasan lebih professional dan transparan.', 'The first step to support a more professional and transparent Poultry Industry.')}
         </p>
       </div>
 
