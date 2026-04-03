@@ -108,7 +108,7 @@ export default function DashboardLayout() {
           <aside className="relative flex h-full w-64 flex-col bg-sidebar text-sidebar-foreground z-[1000]">
             <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-6 bg-white">
               <Link to="/" className="flex items-center gap-2">
-                <img src={logo} alt="PINSAR" className="h-12 w-12 object-contain" />
+                <img src={logo} alt="PINSAR" className="h-24 w-24 object-contain" />
               </Link>
               <button onClick={() => setMobileOpen(false)}><X className="h-5 w-5 text-sidebar-foreground" /></button>
             </div>
