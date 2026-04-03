@@ -48,7 +48,7 @@ export default function PublicNavbar() {
     <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <img src={logo} alt="PINSAR Indonesia" className="h-16 w-auto object-contain" />
+          <img src={logo} alt="PINSAR Indonesia" className="h-11 w-auto object-contain" />
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">

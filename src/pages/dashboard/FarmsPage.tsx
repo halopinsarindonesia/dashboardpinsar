@@ -193,9 +193,16 @@ export default function FarmsPage() {
     const numInitialPop = Number(initialPop) || 0;
     const isLayer = LAYER_TYPES.includes(farmType);
 
+    // For layer types, auto-determine status based on population
+    let effectiveStatus = status;
+    if (isLayer && editFarm) {
+      const pop = currentPopulations[editFarm.id] ?? 0;
+      effectiveStatus = pop <= 0 ? 'prapasca' : 'active';
+    }
+
     const payload: any = {
       name, province: provinceName, city: cityName || null, district: districtName || null, kelurahan: villageName || null,
-      farm_type: farmType as any, status: status as any, owner_id: selectedOwner,
+      farm_type: farmType as any, status: effectiveStatus as any, owner_id: selectedOwner,
       kapasitas_kandang: numKapasitas,
       broiler_initial_population: isLayer ? 0 : numInitialPop,
       layer_initial_population: isLayer ? numInitialPop : 0,
