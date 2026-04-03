@@ -370,9 +370,18 @@ export default function FarmsPage() {
                         <td className="px-3 py-3 text-right text-foreground whitespace-nowrap">{initPop.toLocaleString('id-ID')}</td>
                         <td className="px-3 py-3 text-right font-semibold text-foreground whitespace-nowrap">{(currentPopulations[farm.id] ?? 0).toLocaleString('id-ID')}</td>
                         <td className="px-3 py-3 whitespace-nowrap">
-                          <span className={farm.status === 'active' ? 'status-badge-submitted' : farm.status === 'prapasca' ? 'status-badge-pending' : 'status-badge-not-submitted'}>
-                            {STATUS_LABELS[farm.status] || farm.status}
-                          </span>
+                          {(() => {
+                            const pop = currentPopulations[farm.id] ?? 0;
+                            // For layer types: status is determined by population
+                            const effectiveStatus = isLayer
+                              ? (pop <= 0 ? 'prapasca' : 'active')
+                              : farm.status;
+                            return (
+                              <span className={effectiveStatus === 'active' ? 'status-badge-submitted' : effectiveStatus === 'prapasca' ? 'status-badge-pending' : 'status-badge-not-submitted'}>
+                                {STATUS_LABELS[effectiveStatus] || effectiveStatus}
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td className="px-3 py-3 text-muted-foreground text-xs whitespace-nowrap">
                           {farm.created_at ? new Date(farm.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
