@@ -132,26 +132,39 @@ export default function DashboardOverview() {
 
     const popByType: Record<string, number> = {};
     FARM_TYPES.forEach(t => { popByType[t] = 0; });
-    const activeFarmIds = allFarms.filter((f: any) => f.status === 'active').map((f: any) => f.id);
+    const activePrapascaFarms = allFarms.filter((f: any) => f.status === 'active' || f.status === 'prapasca');
+    const activePrapascaIds = activePrapascaFarms.map((f: any) => f.id);
 
-    if (activeFarmIds.length > 0) {
+    if (activePrapascaIds.length > 0) {
       const { data: supplyData } = await supabase.from('supply_records')
-        .select('farm_id, broiler_input, broiler_sold, broiler_death')
-        .in('farm_id', activeFarmIds);
+        .select('farm_id, broiler_input, broiler_sold, broiler_death, layer_input, layer_sold, layer_death')
+        .in('farm_id', activePrapascaIds);
 
-      const supplyByFarm: Record<string, { input: number; sold: number; death: number }> = {};
+      const supplyByFarm: Record<string, any[]> = {};
       (supplyData ?? []).forEach((s: any) => {
-        if (!supplyByFarm[s.farm_id]) supplyByFarm[s.farm_id] = { input: 0, sold: 0, death: 0 };
-        supplyByFarm[s.farm_id].input += s.broiler_input ?? 0;
-        supplyByFarm[s.farm_id].sold += s.broiler_sold ?? 0;
-        supplyByFarm[s.farm_id].death += s.broiler_death ?? 0;
+        if (!supplyByFarm[s.farm_id]) supplyByFarm[s.farm_id] = [];
+        supplyByFarm[s.farm_id].push(s);
       });
 
       let totalPop = 0;
-      allFarms.filter((f: any) => f.status === 'active').forEach((f: any) => {
-        const initial = f.broiler_initial_population ?? 0;
-        const supply = supplyByFarm[f.id] || { input: 0, sold: 0, death: 0 };
-        const pop = Math.max(0, initial + supply.input - supply.sold - supply.death);
+      activePrapascaFarms.forEach((f: any) => {
+        const recs = supplyByFarm[f.id] || [];
+        const isLayer = ['layer', 'other_egg'].includes(f.farm_type);
+        let pop: number;
+        if (isLayer) {
+          const initial = f.broiler_initial_population ?? 0;
+          pop = initial
+            + recs.reduce((s: number, r: any) => s + (r.layer_input ?? 0), 0)
+            - recs.reduce((s: number, r: any) => s + (r.layer_sold ?? 0), 0)
+            - recs.reduce((s: number, r: any) => s + (r.layer_death ?? 0), 0);
+        } else {
+          const initial = f.broiler_initial_population ?? 0;
+          pop = initial
+            + recs.reduce((s: number, r: any) => s + (r.broiler_input ?? 0), 0)
+            - recs.reduce((s: number, r: any) => s + (r.broiler_sold ?? 0), 0)
+            - recs.reduce((s: number, r: any) => s + (r.broiler_death ?? 0), 0);
+        }
+        pop = Math.max(0, pop);
         popByType[f.farm_type] = (popByType[f.farm_type] || 0) + pop;
         totalPop += pop;
       });
