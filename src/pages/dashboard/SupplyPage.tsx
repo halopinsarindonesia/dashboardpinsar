@@ -300,7 +300,13 @@ export default function SupplyPage() {
         toast({ title: 'Berhasil', description: 'Data produksi berhasil disimpan.' });
         const farm = farms.find(f => f.id === selectedFarmId);
         const isLayer = farm && LAYER_TYPES.includes(farm.farm_type);
-        if (newPop <= 0 && (isLayer || !isLayer)) {
+        if (isLayer) {
+          if (newPop <= 0) {
+            await supabase.from('farms').update({ status: 'prapasca' as any }).eq('id', selectedFarmId);
+          } else {
+            await supabase.from('farms').update({ status: 'active' as any }).eq('id', selectedFarmId).eq('status', 'prapasca' as any);
+          }
+        } else if (newPop <= 0) {
           await supabase.from('farms').update({ status: 'prapasca' as any }).eq('id', selectedFarmId).eq('status', 'active');
         }
         resetForm(); setDialogOpen(false); loadData();
