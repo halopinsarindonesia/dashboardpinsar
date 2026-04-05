@@ -577,6 +577,7 @@ export default function CMSPage() {
         </div>
         <TabsContent value="banner"><BannerTab /></TabsContent>
         <TabsContent value="overview"><OverviewTab /></TabsContent>
+        <TabsContent value="events"><EventsTab /></TabsContent>
         <TabsContent value="gallery"><GalleryTab /></TabsContent>
         <TabsContent value="about"><AboutTab /></TabsContent>
         <TabsContent value="contact"><ContactTab /></TabsContent>
