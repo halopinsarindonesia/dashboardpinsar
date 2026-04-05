@@ -89,8 +89,13 @@ export default function HomePage() {
   const animMembers = useCountUp(stats.members);
   const animPengurus = useCountUp(stats.pengurus);
 
-  // Events carousel: show 3 on desktop, 1 on mobile
-  const eventsPerPage = typeof window !== 'undefined' && window.innerWidth >= 768 ? 3 : 1;
+  // Events carousel: show 3 on desktop/tablet, 1 on mobile
+  const [eventsPerPage, setEventsPerPage] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768 ? 3 : 1);
+  useEffect(() => {
+    const onResize = () => setEventsPerPage(window.innerWidth >= 768 ? 3 : 1);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
   const maxEventIdx = Math.max(0, events.length - eventsPerPage);
 
   return (
