@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { logAudit } from '@/lib/audit';
 import RichTextEditor from '@/components/RichTextEditor';
-import { Loader2, Plus, Pencil, Trash2, Image, FileText, Phone, Globe, Handshake, Eye, ImagePlus } from 'lucide-react';
+import { Loader2, Plus, Pencil, Trash2, Image, FileText, Phone, Globe, Handshake, Eye, ImagePlus, CalendarDays } from 'lucide-react';
 
 // ─── Banner ─────────────────────────────
 function BannerTab() {
