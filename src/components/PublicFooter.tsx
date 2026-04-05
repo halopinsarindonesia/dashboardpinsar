@@ -27,7 +27,7 @@ export default function PublicFooter() {
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <img src={logo} alt="PINSAR" className="h-24 w-auto object-contain rounded" />
+              <img src={logo} alt="PINSAR" className="h-16 w-auto object-contain rounded" />
             </div>
             <p className="text-sm text-muted-foreground">
               Membangun Industri Perunggasan Nasional Berkelanjutan, dengan semangat kolaborasi dan gotong – royong demi kemajuan Peternak Indonesia.
