@@ -567,6 +567,7 @@ export default function CMSPage() {
           <TabsList className="inline-flex w-auto min-w-max">
             <TabsTrigger value="banner"><Image className="mr-1.5 h-4 w-4" />Banner</TabsTrigger>
             <TabsTrigger value="overview"><Eye className="mr-1.5 h-4 w-4" />Overview</TabsTrigger>
+            <TabsTrigger value="events"><CalendarDays className="mr-1.5 h-4 w-4" />Acara</TabsTrigger>
             <TabsTrigger value="gallery"><ImagePlus className="mr-1.5 h-4 w-4" />Galeri</TabsTrigger>
             <TabsTrigger value="about"><FileText className="mr-1.5 h-4 w-4" />Tentang Kami</TabsTrigger>
             <TabsTrigger value="contact"><Phone className="mr-1.5 h-4 w-4" />Kontak</TabsTrigger>
