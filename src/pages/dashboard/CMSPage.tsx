@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { logAudit } from '@/lib/audit';
 import RichTextEditor from '@/components/RichTextEditor';
-import { Loader2, Plus, Pencil, Trash2, Image, FileText, Phone, Globe, Handshake, Eye, ImagePlus } from 'lucide-react';
+import { Loader2, Plus, Pencil, Trash2, Image, FileText, Phone, Globe, Handshake, Eye, ImagePlus, CalendarDays } from 'lucide-react';
 
 // ─── Banner ─────────────────────────────
 function BannerTab() {
@@ -382,6 +382,115 @@ function PartnersTab() {
   );
 }
 
+// ─── Events ─────────────────────────────
+function EventsTab() {
+  const { user, profile } = useAuth();
+  const { toast } = useToast();
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<any>(null);
+  const [title, setTitle] = useState('');
+  const [bannerUrl, setBannerUrl] = useState('');
+  const [startDatetime, setStartDatetime] = useState('');
+  const [endDatetime, setEndDatetime] = useState('');
+  const [price, setPrice] = useState('');
+
+  useEffect(() => { load(); }, []);
+  async function load() {
+    setLoading(true);
+    // Auto-cleanup expired events
+    await supabase.rpc('cleanup_expired_events' as any);
+    const { data } = await (supabase.from('cms_events' as any) as any).select('*').order('start_datetime', { ascending: true });
+    setEvents((data as any[]) ?? []);
+    setLoading(false);
+  }
+
+  function resetForm() { setTitle(''); setBannerUrl(''); setStartDatetime(''); setEndDatetime(''); setPrice(''); setEditingEvent(null); }
+  function openEdit(ev: any) {
+    setEditingEvent(ev); setTitle(ev.title); setBannerUrl(ev.banner_url);
+    setStartDatetime(ev.start_datetime?.slice(0, 16) || '');
+    setEndDatetime(ev.end_datetime?.slice(0, 16) || '');
+    setPrice(ev.price != null ? String(ev.price) : '');
+    setDialogOpen(true);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault(); setSubmitting(true);
+    const payload = {
+      title, banner_url: bannerUrl,
+      start_datetime: new Date(startDatetime).toISOString(),
+      end_datetime: new Date(endDatetime).toISOString(),
+      price: price ? Number(price) : null,
+    };
+    if (editingEvent) {
+      const { error } = await (supabase.from('cms_events' as any) as any).update(payload).eq('id', editingEvent.id);
+      if (error) toast({ title: 'Gagal', description: error.message, variant: 'destructive' });
+      else { await logAudit({ action: 'edit', module: 'CMS Event', userId: user?.id, userName: profile?.full_name, newValue: { title } }); toast({ title: 'Acara diperbarui' }); setDialogOpen(false); resetForm(); load(); }
+    } else {
+      if (events.length >= 20) { toast({ title: 'Gagal', description: 'Maksimal 20 acara aktif.', variant: 'destructive' }); setSubmitting(false); return; }
+      const { error } = await (supabase.from('cms_events' as any) as any).insert({ ...payload, sort_order: events.length });
+      if (error) toast({ title: 'Gagal', description: error.message, variant: 'destructive' });
+      else { await logAudit({ action: 'create', module: 'CMS Event', userId: user?.id, userName: profile?.full_name, newValue: { title } }); toast({ title: 'Acara ditambahkan' }); setDialogOpen(false); resetForm(); load(); }
+    }
+    setSubmitting(false);
+  }
+
+  async function handleDelete(id: string) {
+    const { error } = await (supabase.from('cms_events' as any) as any).delete().eq('id', id);
+    if (!error) { await logAudit({ action: 'delete', module: 'CMS Event', userId: user?.id, userName: profile?.full_name, oldValue: { id } }); toast({ title: 'Acara dihapus' }); load(); }
+  }
+
+  const formatDt = (d: string) => new Date(d).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-muted-foreground">Kelola acara (maks. 20, otomatis terhapus 1 hari setelah selesai)</p>
+        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
+          <DialogTrigger asChild><Button size="sm"><Plus className="mr-2 h-4 w-4" />Tambah Acara</Button></DialogTrigger>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader><DialogTitle>{editingEvent ? 'Edit Acara' : 'Acara Baru'}</DialogTitle></DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div><Label>Nama Acara</Label><Input value={title} onChange={e => setTitle(e.target.value)} required /></div>
+              <div><Label>Banner Image URL</Label><Input value={bannerUrl} onChange={e => setBannerUrl(e.target.value)} required placeholder="https://..." /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Mulai</Label><Input type="datetime-local" value={startDatetime} onChange={e => setStartDatetime(e.target.value)} required /></div>
+                <div><Label>Selesai</Label><Input type="datetime-local" value={endDatetime} onChange={e => setEndDatetime(e.target.value)} required /></div>
+              </div>
+              <div><Label>HTM / Harga Tiket (kosongkan jika gratis)</Label><Input type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="Gratis" /></div>
+              <Button type="submit" className="w-full" disabled={submitting}>{submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : editingEvent ? 'Simpan Perubahan' : 'Simpan'}</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+      {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> : events.length === 0 ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">Belum ada acara.</p>
+      ) : (
+        <div className="space-y-3">
+          {events.map((ev: any) => (
+            <div key={ev.id} className="flex items-start gap-3 rounded-lg border p-4">
+              <div className="h-16 w-24 shrink-0 rounded bg-muted overflow-hidden">
+                <img src={ev.banner_url} alt={ev.title} className="h-full w-full object-cover" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-medium text-foreground">{ev.title}</h3>
+                <p className="text-xs text-muted-foreground">{formatDt(ev.start_datetime)} – {formatDt(ev.end_datetime)}</p>
+                <p className="text-xs text-muted-foreground">{ev.price ? `Rp ${Number(ev.price).toLocaleString('id-ID')}` : 'Gratis'}</p>
+              </div>
+              <div className="flex gap-1 shrink-0">
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(ev)}><Pencil className="h-4 w-4" /></Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(ev.id)}><Trash2 className="h-4 w-4" /></Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Gallery ────────────────────────────
 function GalleryTab() {
   const { user, profile } = useAuth();
@@ -458,6 +567,7 @@ export default function CMSPage() {
           <TabsList className="inline-flex w-auto min-w-max">
             <TabsTrigger value="banner"><Image className="mr-1.5 h-4 w-4" />Banner</TabsTrigger>
             <TabsTrigger value="overview"><Eye className="mr-1.5 h-4 w-4" />Overview</TabsTrigger>
+            <TabsTrigger value="events"><CalendarDays className="mr-1.5 h-4 w-4" />Acara</TabsTrigger>
             <TabsTrigger value="gallery"><ImagePlus className="mr-1.5 h-4 w-4" />Galeri</TabsTrigger>
             <TabsTrigger value="about"><FileText className="mr-1.5 h-4 w-4" />Tentang Kami</TabsTrigger>
             <TabsTrigger value="contact"><Phone className="mr-1.5 h-4 w-4" />Kontak</TabsTrigger>
@@ -467,6 +577,7 @@ export default function CMSPage() {
         </div>
         <TabsContent value="banner"><BannerTab /></TabsContent>
         <TabsContent value="overview"><OverviewTab /></TabsContent>
+        <TabsContent value="events"><EventsTab /></TabsContent>
         <TabsContent value="gallery"><GalleryTab /></TabsContent>
         <TabsContent value="about"><AboutTab /></TabsContent>
         <TabsContent value="contact"><ContactTab /></TabsContent>

@@ -179,6 +179,45 @@ export type Database = {
         }
         Relationships: []
       }
+      cms_events: {
+        Row: {
+          banner_url: string
+          created_at: string
+          end_datetime: string
+          id: string
+          is_active: boolean | null
+          price: number | null
+          sort_order: number | null
+          start_datetime: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          banner_url: string
+          created_at?: string
+          end_datetime: string
+          id?: string
+          is_active?: boolean | null
+          price?: number | null
+          sort_order?: number | null
+          start_datetime: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          banner_url?: string
+          created_at?: string
+          end_datetime?: string
+          id?: string
+          is_active?: boolean | null
+          price?: number | null
+          sort_order?: number | null
+          start_datetime?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cms_gallery: {
         Row: {
           created_at: string
@@ -540,6 +579,7 @@ export type Database = {
     }
     Functions: {
       auto_inactivate_farms: { Args: never; Returns: undefined }
+      cleanup_expired_events: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

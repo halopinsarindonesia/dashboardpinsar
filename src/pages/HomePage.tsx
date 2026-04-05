@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ArrowRight, BarChart3, Calendar, MapPin, Users, Award, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -10,6 +10,7 @@ interface BlogItem { id: string; title: string; content: string | null; blog_typ
 interface Partner { id: string; name: string; logo_url: string; }
 interface BannerData { image_url: string; title: string | null; }
 interface GalleryItem { id: string; image_url: string; title: string | null; }
+interface EventItem { id: string; banner_url: string; title: string; start_datetime: string; end_datetime: string; price: number | null; }
 
 function useCountUp(target: number, duration = 2000) {
   const [value, setValue] = useState(0);
@@ -34,6 +35,9 @@ export default function HomePage() {
   const [overview, setOverview] = useState('');
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
   const [galleryIdx, setGalleryIdx] = useState(0);
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [eventIdx, setEventIdx] = useState(0);
+  const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
   const [stats, setStats] = useState({ regions: 0, members: 0, pengurus: 0 });
 
   const yearsActive = Math.floor((Date.now() - new Date('1990-03-23').getTime()) / (365.25 * 24 * 60 * 60 * 1000));
@@ -58,6 +62,13 @@ export default function HomePage() {
       .eq('is_active', true).order('sort_order').limit(5)
       .then(({ data }) => setGallery((data as unknown as GalleryItem[]) ?? []));
 
+    // Fetch events (auto-cleanup expired)
+    supabase.rpc('cleanup_expired_events' as any).then(() => {
+      (supabase.from('cms_events' as any) as any).select('id, banner_url, title, start_datetime, end_datetime, price')
+        .eq('is_active', true).order('start_datetime').limit(20)
+        .then(({ data }: any) => setEvents((data as EventItem[]) ?? []));
+    });
+
     Promise.all([
       supabase.from('farms').select('province, status'),
       supabase.from('profiles').select('id, role').eq('status', 'approved' as any).neq('role', 'superadmin' as any),
@@ -71,11 +82,16 @@ export default function HomePage() {
   }, []);
 
   const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+  const formatDt = (d: string) => new Date(d).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
   const animYears = useCountUp(yearsActive);
   const animRegions = useCountUp(stats.regions);
   const animMembers = useCountUp(stats.members);
   const animPengurus = useCountUp(stats.pengurus);
+
+  // Events carousel: show 3 on desktop, 1 on mobile
+  const eventsPerPage = typeof window !== 'undefined' && window.innerWidth >= 768 ? 3 : 1;
+  const maxEventIdx = Math.max(0, events.length - eventsPerPage);
 
   return (
     <div>
@@ -122,6 +138,88 @@ export default function HomePage() {
           </div>
         </section>
       )}
+
+      {/* Acara / Events Section */}
+      {events.length > 0 && (
+        <section className="py-16 bg-muted/50 border-b">
+          <div className="container">
+            <h2 className="font-display text-2xl font-bold text-foreground text-center mb-8">{t('Acara Mendatang', 'Upcoming Events')}</h2>
+            <div className="relative max-w-5xl mx-auto">
+              <div className="overflow-hidden">
+                <div
+                  className="flex transition-transform duration-300 gap-4"
+                  style={{ transform: `translateX(-${eventIdx * (100 / eventsPerPage)}%)` }}
+                >
+                  {events.map((ev) => (
+                    <div
+                      key={ev.id}
+                      className="shrink-0 cursor-pointer"
+                      style={{ width: `calc(${100 / eventsPerPage}% - ${((eventsPerPage - 1) * 16) / eventsPerPage}px)` }}
+                      onClick={() => setSelectedEvent(ev)}
+                    >
+                      <div className="rounded-xl border bg-card shadow-sm hover:shadow-md transition-shadow overflow-hidden h-full">
+                        <div className="aspect-video bg-muted overflow-hidden">
+                          <img src={ev.banner_url} alt={ev.title} className="h-full w-full object-cover" />
+                        </div>
+                        <div className="p-4">
+                          <h3 className="font-display text-base font-semibold text-foreground line-clamp-2">{ev.title}</h3>
+                          <p className="text-xs text-muted-foreground mt-1">{formatDt(ev.start_datetime)}</p>
+                          <p className="text-sm font-medium text-primary mt-2">
+                            {ev.price ? `Rp ${Number(ev.price).toLocaleString('id-ID')}` : t('Gratis', 'Free')}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {events.length > eventsPerPage && (
+                <>
+                  <button
+                    onClick={() => setEventIdx(i => Math.max(0, i - 1))}
+                    disabled={eventIdx === 0}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 rounded-full bg-background/80 p-2 shadow hover:bg-background disabled:opacity-30"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => setEventIdx(i => Math.min(maxEventIdx, i + 1))}
+                    disabled={eventIdx >= maxEventIdx}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 rounded-full bg-background/80 p-2 shadow hover:bg-background disabled:opacity-30"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Event Detail Dialog */}
+      <Dialog open={!!selectedEvent} onOpenChange={(o) => !o && setSelectedEvent(null)}>
+        <DialogContent className="sm:max-w-lg">
+          {selectedEvent && (
+            <>
+              <DialogHeader><DialogTitle>{selectedEvent.title}</DialogTitle></DialogHeader>
+              <div className="space-y-4">
+                <div className="aspect-video rounded-lg overflow-hidden bg-muted">
+                  <img src={selectedEvent.banner_url} alt={selectedEvent.title} className="h-full w-full object-cover" />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    <span>{formatDt(selectedEvent.start_datetime)} – {formatDt(selectedEvent.end_datetime)}</span>
+                  </div>
+                  <p className="text-lg font-semibold text-primary">
+                    {selectedEvent.price ? `Rp ${Number(selectedEvent.price).toLocaleString('id-ID')}` : t('Gratis', 'Free')}
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* PINSAR in Numbers */}
       <section className="py-16 bg-card border-b">
@@ -213,7 +311,7 @@ export default function HomePage() {
       {partners.length > 0 && (
         <section className="py-16">
           <div className="container">
-            <h2 className="font-display text-2xl font-bold text-foreground text-center mb-8">{t('Anggota', 'Members')}</h2>
+            <h2 className="font-display text-2xl font-bold text-foreground text-center mb-8">{t('Anggota PINSAR', 'PINSAR Members')}</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-w-4xl mx-auto">
               {partners.slice(0, 10).map(p => (
                 <div key={p.id} className="rounded-xl border bg-card p-4 flex flex-col items-center justify-center text-center shadow-sm hover:shadow-md transition-shadow">
